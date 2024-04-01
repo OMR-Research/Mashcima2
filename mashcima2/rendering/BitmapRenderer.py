@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import warnings
 
 from mashcima2.geometry.Transform import Transform
 from ..scene.Scene import Scene
@@ -8,25 +7,26 @@ from ..scene.Sprite import Sprite
 from ..geometry.units import mm_to_px
 
 
-def _alpha_overlay_layer(canvas: np.ndarray, layer: np.ndarray) -> np.ndarray:
-    # the "over" operator as described here:
-    # https://en.wikipedia.org/wiki/Alpha_compositing
-    
-    with warnings.catch_warnings():
-        # ignore division by zero warnings
-        warnings.filterwarnings("ignore", "invalid value encountered")
+# Alpha compositing via the "over" operator + alpha premultiplication:
+# https://en.wikipedia.org/wiki/Alpha_compositing
 
-        canvasBGR = canvas[:, :, 0:3]
-        layerBGR = layer[:, :, 0:3]
 
-        canvasA = canvas[:, :, 3:4] / 255
-        layerA = layer[:, :, 3:4] / 255
+def _premultiplied_float32_alpha_overlay(canvas: np.ndarray, layer: np.ndarray):
+    factor = (1 - layer[:, :, 3:4])
+    canvas *= factor
+    canvas += layer
 
-        outA = canvasA + layerA * (1 - canvasA)
 
-        outBGR = (canvasBGR*canvasA + layerBGR*layerA*(1-canvasA)) / outA
+def _uint8_to_float32(img: np.ndarray) -> np.ndarray:
+    img = img.astype(np.float32)
+    img /= 255
+    return img
 
-        return np.dstack((outBGR,outA*255)).astype(np.uint8)
+
+def _float32_to_uint8(img: np.ndarray) -> np.ndarray:
+    img *= 255
+    img = img.astype(np.uint8)
+    return img
 
 
 class BitmapRenderer:
@@ -42,9 +42,10 @@ class BitmapRenderer:
         canvas_width = int(mm_to_px(scene.view_box.width, dpi=self.dpi))
         canvas_height = int(mm_to_px(scene.view_box.height, dpi=self.dpi))
 
+        # in alpha premultiplied float32 format
         canvas = np.zeros(
             shape=(canvas_height, canvas_width, 4),
-            dtype=np.uint8
+            dtype=np.float32
         )
 
         # converts from scene millimeter coordinate system
@@ -68,17 +69,22 @@ class BitmapRenderer:
             )
             
             # TODO: this is awful slow... needs to map only the neighborhood
-            # of the sprite, not the whole canvas, plus do faster alpha
-            # compositing, say by using the premultiplied representation?
-            print("Warping...")
+            # of the sprite, not the whole canvas (consider interpolation blur!)
+            sprite_bitmap = sprite.bitmap
+            sprite_bitmap = cv2.cvtColor(sprite_bitmap, cv2.COLOR_RGBA2mRGBA)
+            sprite_bitmap = _uint8_to_float32(sprite_bitmap)
             new_layer = cv2.warpAffine(
-                src=sprite.bitmap,
+                src=sprite_bitmap,
                 M=complete_transform.matrix,
-                dsize=(canvas_width, canvas_height)
+                dsize=(canvas_width, canvas_height),
+                # flags=cv2.INTER_AREA, # use for decimation (downscaling)
+                flags=cv2.INTER_LINEAR, # use for upscaling
+                borderMode=cv2.BORDER_CONSTANT
             )
             # TODO: specify proper interpolation !!! (say, based on the determinant)
-            print("Compositing...")
-            canvas = _alpha_overlay_layer(canvas, new_layer)
-            print("Done.")
+            _premultiplied_float32_alpha_overlay(canvas, new_layer)
 
+        # convert to uint8 RGBA (BGRA actually) and return
+        canvas = _float32_to_uint8(canvas)
+        canvas = cv2.cvtColor(canvas, cv2.COLOR_mRGBA2RGBA)
         return canvas

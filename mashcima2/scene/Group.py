@@ -19,7 +19,7 @@ class Group(SceneObject):
         **kwargs
     ):
         if at_index is None:
-            at_index = len(self._children) - 1
+            at_index = len(self._children)
         self._children.insert(at_index, child)
 
     def insert(self, at_index: int, child: SceneObject):
