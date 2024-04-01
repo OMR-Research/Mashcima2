@@ -27,3 +27,13 @@ Coerce the old Mashcima 1 into a modular format similar to how NLTK is deisgned 
     - parsing & conversions of formats
     - MusicXML as the primary input format
     - generation of synthetic music
+
+
+## After cloning
+
+Create a virtual environment and install dependencies:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip3 install -r requirements.txt
+```
