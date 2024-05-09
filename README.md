@@ -3,9 +3,31 @@
 A library and a framework for synthesizing images containing music, intended for use as training data for OMR models.
 
 
-## Plan for the first release
+## A tutorial
 
-Coerce the old Mashcima 1 into a modular format similar to how NLTK is deisgned and then extend it with additional functionality.
+> **Note:** The tool is under development and does not yet have a fixed public API.
+
+
+## How it works
+
+Mashcima is not really a single tool, but more like a framework. To fully learn how to leverage its abilities, start by reading its documentation:
+
+[Mashcima Documentation - Introduction](docs/introduction.md)
+
+
+## After cloning
+
+Create a virtual environment and install dependencies:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip3 install -r requirements.txt
+```
+
+
+## TODO list
+
+The first milestone to hit is to convert Mashcima 1 into the modular structure of Mashcima 2, thereby settling most of its interfaces. The only additional logic is full-page synthesis.
 
 - The `Scene` data model
     - The data model for the output of the synthesizer
@@ -27,13 +49,3 @@ Coerce the old Mashcima 1 into a modular format similar to how NLTK is deisgned 
     - parsing & conversions of formats
     - MusicXML as the primary input format
     - generation of synthetic music
-
-
-## After cloning
-
-Create a virtual environment and install dependencies:
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip3 install -r requirements.txt
-```
