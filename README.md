@@ -5,7 +5,11 @@ A library and a framework for synthesizing images containing music, intended for
 
 ## A tutorial
 
-> **Note:** The tool is under development and does not yet have a fixed public API.
+> **Note:** The tool is under development and does not yet have a fixed public API. The tutorial is being developed and from it the whole tool is being built top-down.
+
+To quickly learn how to start using Mashcima for your project, start with the tutorial.
+
+[Mashcima Tutorial](docs/tutorial.md)
 
 
 ## How it works
