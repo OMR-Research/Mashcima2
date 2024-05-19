@@ -108,3 +108,32 @@ class Sprite(SceneObject):
         )
         sprite.transform = Transform.translate(rectangle.center.vector)
         return sprite
+
+    @staticmethod
+    def rectangle(
+        space: AffineSpace,
+        rectangle: Rectangle,
+        fill_color = (0, 0, 255, 64), # BGRA
+        dpi: float = 300
+    ) -> "Sprite":
+        """Creates a rectangle filled with the given color at a given DPI"""
+        pixel_width = int(mm_to_px(rectangle.width, dpi=dpi))
+        pixel_height = int(mm_to_px(rectangle.height, dpi=dpi))
+        
+        bitmap = np.zeros(
+            shape=(pixel_height, pixel_width, 4),
+            dtype=np.uint8
+        )
+
+        # paint fill
+        bitmap[:,:] = fill_color
+
+        # create the sprite instance
+        sprite = Sprite(
+            space=space,
+            bitmap=bitmap,
+            bitmap_origin=Point(0.5, 0.5),
+            dpi=dpi
+        )
+        sprite.transform = Transform.translate(rectangle.center.vector)
+        return sprite
