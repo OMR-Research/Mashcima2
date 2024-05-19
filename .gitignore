@@ -5,6 +5,9 @@
 mashcima_assets/
 # ...
 
+# MuseScore
+.mscbackup
+
 
 ###############################
 # Default gitignore by GitHub #
