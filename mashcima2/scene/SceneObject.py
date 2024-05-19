@@ -1,8 +1,12 @@
-from typing import Any, List
+from typing import Any, Set, Type, TypeVar, List, Optional
 from dataclasses import dataclass, field
 
 
+T = TypeVar("T")
+
+
 class Link:
+    """Describes a named, oriented link between two scene objects"""
     source: "SceneObject"
     target: "SceneObject"
     name: str
@@ -11,40 +15,67 @@ class Link:
         self.source = source
         self.target = target
         self.name = name
+
+    def __hash__(self) -> int:
+        return hash((id(self.source), id(self.target), self.name))
+    
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Link):
+            return False
+        if self.source is not other.source:
+            return False
+        if self.target is not other.target:
+            return False
+        if self.name != other.name:
+            return False
+        return True
     
     def __repr__(self) -> str:
         return f"{self.source.__class__.__name__}-->" + \
             f"{self.target.__class__.__name__}"
 
+    def attach(self):
+        """Add the link into the graph"""
+        self.source.outlinks.add(self)
+        self.target.inlinks.add(self)
+
+    def detach(self):
+        """Remove the link from the graph"""
+        self.source.outlinks.remove(self)
+        self.target.inlinks.remove(self)
+
 
 @dataclass
 class SceneObject:
-    inlinks: List[Link] = field(default_factory=list, init=False, repr=False)
-    outlinks: List[Link] = field(default_factory=list, init=False, repr=False)
+    inlinks: Set[Link] = field(default_factory=set, init=False, repr=False)
+    outlinks: Set[Link] = field(default_factory=set, init=False, repr=False)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if isinstance(value, SceneObject):
-            self.replace_outlink(target=value, name=name)
-            value.replace_inlink(source=self, name=name)
+        if name == "inlinks":
+            pass
+        elif name == "outlinks":
+            pass
+        elif isinstance(value, SceneObject):
+            self._destroy_outlinks_for(name)
+            Link(source=self, target=value, name=name).attach()
+        elif isinstance(value, list) or isinstance(value, set):
+            # TODO: hook into mutation methods or freeze the instances!
+            self._destroy_outlinks_for(name)
+            for item in value:
+                if isinstance(item, SceneObject):
+                    Link(source=self, target=item, name=name).attach()
 
         super().__setattr__(name, value)
     
-    def replace_outlink(self, target: "SceneObject", name: str):
-        # remove the outlink with the given name
-        self.outlinks = [
-            l for l in self.outlinks
-            if l.name != name
+    def _destroy_outlinks_for(self, name: str):
+        for link in list(self.outlinks):
+            if link.name == name:
+                link.detach()
+    
+    def get_inlinked(self, obj_type: Type[T], name: Optional[str] = None) \
+            -> List[T]:
+        return [
+            link.source for link in self.inlinks
+            if isinstance(link.source, obj_type)
+                and (name is None or link.name == name)
         ]
-
-        # add the new outlink
-        self.outlinks.append(Link(self, target, name))
-
-    def replace_inlink(self, source: "SceneObject", name: str):
-        # remove the inlink from the given source via the given name
-        self.outlinks = [
-            l for l in self.outlinks
-            if not (l.name == name and l.source is source)
-        ]
-
-        # add the new inlink
-        self.inlinks.append(Link(source, self, name))

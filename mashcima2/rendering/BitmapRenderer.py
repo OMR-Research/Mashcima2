@@ -1,11 +1,13 @@
 import numpy as np
 import cv2
+from typing import Iterator, Tuple
 
 from mashcima2.geometry.Transform import Transform
 from ..scene.Scene import Scene
 from ..scene.Sprite import Sprite
 from ..scene.ViewBox import ViewBox
 from ..geometry.units import mm_to_px
+from ..scene.AffineSpace import AffineSpace
 
 
 # Alpha compositing via the "over" operator + alpha premultiplication:
@@ -60,15 +62,14 @@ class BitmapRenderer:
                 .then(Transform.scale(mm_to_px(1, dpi=self.dpi)))
         )
 
-        for sprite in scene.find(Sprite):
-            # TODO: have the transform be built up recursively
-            # (by traversing the space hierarchy and looking for sprites)
-
+        for (sprite, sprite_transform) in self._traverse_sprites(
+            scene.space, Transform.identity()
+        ):
             # build up a transform that converts from sprite's local pixel space
             # to canvas global pixel space, while going through the scene space
             complete_transform = (
                 sprite.get_pixels_to_scene_transform()
-                .then(sprite.transform) # recursive scene hierarchy transforms
+                .then(sprite_transform) # recursive scene hierarchy transforms
                 .then(scene_to_canvas_transform)
             )
             
@@ -92,3 +93,25 @@ class BitmapRenderer:
         canvas = _float32_to_uint8(canvas)
         canvas = cv2.cvtColor(canvas, cv2.COLOR_mRGBA2RGBA)
         return canvas
+
+    def _traverse_sprites(
+        self,
+        space: AffineSpace,
+        local_to_global_transform: Transform
+    ) -> Iterator[Tuple[Sprite, Transform]]:
+
+        # TODO: the ordering has to be fixed in some way!
+        # (e.g. inlinks are ordered by when they were created)
+
+        for sprite in space.get_inlinked(Sprite):
+            yield (
+                sprite,
+                sprite.transform.then(local_to_global_transform)
+            )
+        
+        for subspace in space.get_inlinked(AffineSpace):
+            for (sprite, sprite_transform) in self._traverse_sprites(
+                subspace,
+                subspace.transform.then(local_to_global_transform)
+            ):
+                yield (sprite, sprite_transform)

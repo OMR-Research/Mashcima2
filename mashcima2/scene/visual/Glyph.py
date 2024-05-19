@@ -3,6 +3,7 @@ from ..SceneObject import SceneObject
 from ..Sprite import Sprite
 import abc
 from ..AffineSpace import AffineSpace
+from typing import List
 
 
 @dataclass
@@ -18,6 +19,9 @@ class Glyph(SceneObject, metaclass=abc.ABCMeta):
 
     The glyph has its own local coordinate space, relative to which all spatial
     information is represented.
+
+    Also, see the definition of a glyph:
+    https://en.wikipedia.org/wiki/Glyph
     """
 
     space: AffineSpace = field(default_factory=AffineSpace)
@@ -25,8 +29,8 @@ class Glyph(SceneObject, metaclass=abc.ABCMeta):
     point of the glyph (depends on the glyph class, e.g. center of a notehead
     or the base of a stem)"""
 
-    sprite: Sprite
-    "The image that should be rendered for the glyph."
+    sprites: List[Sprite] = field(default_factory=list)
+    "Images that should be rendered for the glyph."
 
     # TODO: DetectionBox
     # TODO: SegmentationMask
