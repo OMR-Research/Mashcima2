@@ -1,6 +1,7 @@
 import numpy as np
 
 from .SceneObject import SceneObject
+from .AffineSpace import AffineSpace
 from ..geometry.Vector2 import Vector2
 from ..geometry.Transform import Transform
 from ..geometry.Point import Point
@@ -13,16 +14,24 @@ class Sprite(SceneObject):
     
     def __init__(
         self,
+        space: AffineSpace,
         bitmap: np.ndarray,
         bitmap_origin: Point = Point(0.5, 0.5),
-        dpi: float = 300
+        dpi: float = 300,
+        transform: Transform = Transform.identity()
     ):
         super().__init__()
+
+        self.space = space
+        "What parent space does the sprite exist in"
+
+        self.transform = transform
+        """Transform that places the sprite within the parent space - the origin
+        of the transform will become the origin of the bitmap."""
 
         assert len(bitmap.shape) == 3 # [H, W, C]
         assert bitmap.shape[2] == 4 # BGRA
         assert bitmap.dtype == np.uint8
-
         self.bitmap = bitmap
         "The numpy opencv BGRA bitmap for the sprite"
 
@@ -53,7 +62,7 @@ class Sprite(SceneObject):
     
     def get_pixels_to_scene_transform(self) -> Transform:
         """Returns a transform that converts from local pixel space
-        to local scene space"""
+        to local scene space (excluding the sprite transform property)"""
         return (
             Transform.translate(Vector2(
                 -self.bitmap_origin.x * self.pixel_width,
@@ -64,6 +73,7 @@ class Sprite(SceneObject):
 
     @staticmethod
     def debug_box(
+        space: AffineSpace,
         rectangle: Rectangle,
         fill_color = (0, 0, 255, 64), # BGRA
         border_color = (0, 0, 255, 255), # BGRA
@@ -91,6 +101,7 @@ class Sprite(SceneObject):
 
         # create the sprite instance
         sprite = Sprite(
+            space=space,
             bitmap=bitmap,
             bitmap_origin=Point(0.5, 0.5),
             dpi=dpi

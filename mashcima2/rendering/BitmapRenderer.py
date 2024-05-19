@@ -4,6 +4,7 @@ import cv2
 from mashcima2.geometry.Transform import Transform
 from ..scene.Scene import Scene
 from ..scene.Sprite import Sprite
+from ..scene.ViewBox import ViewBox
 from ..geometry.units import mm_to_px
 
 
@@ -39,8 +40,12 @@ class BitmapRenderer:
         "DPI at which the scene should be rasterized"
 
     def render(self, scene: Scene) -> np.ndarray:
-        canvas_width = int(mm_to_px(scene.view_box.width, dpi=self.dpi))
-        canvas_height = int(mm_to_px(scene.view_box.height, dpi=self.dpi))
+        view_boxes = scene.find(ViewBox)
+        assert len(view_boxes) == 1
+        view_box = view_boxes[0]
+
+        canvas_width = int(mm_to_px(view_box.rectangle.width, dpi=self.dpi))
+        canvas_height = int(mm_to_px(view_box.rectangle.height, dpi=self.dpi))
 
         # in alpha premultiplied float32 format
         canvas = np.zeros(
@@ -51,15 +56,14 @@ class BitmapRenderer:
         # converts from scene millimeter coordinate system
         # to the canvas pixel coordinate system
         scene_to_canvas_transform = (
-            Transform.translate(scene.view_box.top_left_corner.vector)
+            Transform.translate(view_box.rectangle.top_left_corner.vector)
                 .then(Transform.scale(mm_to_px(1, dpi=self.dpi)))
         )
 
-        # TODO: recursive and via a public iteration API with filtering by tags
-        for sprite in scene._children:
-            if not isinstance(sprite, Sprite):
-                continue
-            
+        for sprite in scene.find(Sprite):
+            # TODO: have the transform be built up recursively
+            # (by traversing the space hierarchy and looking for sprites)
+
             # build up a transform that converts from sprite's local pixel space
             # to canvas global pixel space, while going through the scene space
             complete_transform = (
@@ -81,7 +85,7 @@ class BitmapRenderer:
                 flags=cv2.INTER_LINEAR, # use for upscaling
                 borderMode=cv2.BORDER_CONSTANT
             )
-            # TODO: specify proper interpolation !!! (say, based on the determinant)
+            # TODO: specify proper interpolation (say, based on the determinant)
             _premultiplied_float32_alpha_overlay(canvas, new_layer)
 
         # convert to uint8 RGBA (BGRA actually) and return

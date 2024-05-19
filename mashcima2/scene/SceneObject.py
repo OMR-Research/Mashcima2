@@ -1,67 +1,50 @@
-import abc
-from typing import Optional
-from ..geometry.Transform import Transform
+from typing import Any, List
+from dataclasses import dataclass, field
 
 
-class SceneObject(abc.ABC):
-    """Base class for all objects in a scene"""
-    
-    # TODO: tags
+class Link:
+    source: "SceneObject"
+    target: "SceneObject"
+    name: str
 
-    def __init__(self):
-        self._parent: Optional["SceneObject"] = None
-        "Parent scene object, may be None"
+    def __init__(self, source: "SceneObject", target: "SceneObject", name: str):
+        self.source = source
+        self.target = target
+        self.name = name
+    
+    def __repr__(self) -> str:
+        return f"{self.source.__class__.__name__}-->" + \
+            f"{self.target.__class__.__name__}"
 
-        self.transform = Transform.identity()
-        """Transform that maps from this object's coordinate system
-        to the parent's coordinate system"""
+
+@dataclass
+class SceneObject:
+    inlinks: List[Link] = field(default_factory=list, init=False, repr=False)
+    outlinks: List[Link] = field(default_factory=list, init=False, repr=False)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if isinstance(value, SceneObject):
+            self.replace_outlink(target=value, name=name)
+            value.replace_inlink(source=self, name=name)
+
+        super().__setattr__(name, value)
     
-    @property
-    def parent(self) -> Optional["SceneObject"]:
-        """
-        Provides property-like access and control over the parent scene object
-        """
-        return self._parent
-    
-    @parent.setter
-    def parent(self, value: Optional["SceneObject"]):
-        if value is None:
-            self.detach_from_parent()
-        elif isinstance(value, SceneObject):
-            if self._parent is not None:
-                self.detach_from_parent()
-            self.attach_to_parent(value)
-        else:
-            raise ValueError(
-                "Parent of a scene object has to be another scene object"
-            )
-    
-    def detach_from_parent(self):
-        """Detaches this scene object from parent, does nothing if no parent"""
-        if self._parent is None:
-            return
-        self._parent._detach_child(self)
-        self._parent = None
-    
-    def attach_to_parent(self, parent: "SceneObject", **kwargs):
-        """Attaches this scene object to a parent scene object"""
-        if self._parent is not None:
-            raise Exception(
-                "This scene object has to detached before it can be " +
-                "attached to another parent object"
-            )
-        self._parent = parent
-        parent._attach_child(self, **kwargs)
-    
-    def _detach_child(self, child: "SceneObject"):
-        """Detach a child from this game object; override this in containers"""
-        # do nothing, as no child can even be attached to begin with
-        pass
-    
-    def _attach_child(self, child: "SceneObject", **kwargs):
-        """Attach a child to this game object; override this in containers"""
-        # if you are a container object, override this method
-        raise Exception(
-            "Cannot attach a child to a scene object that is not a " +
-            "collection (e.g. a Group)"
-        )
+    def replace_outlink(self, target: "SceneObject", name: str):
+        # remove the outlink with the given name
+        self.outlinks = [
+            l for l in self.outlinks
+            if l.name != name
+        ]
+
+        # add the new outlink
+        self.outlinks.append(Link(self, target, name))
+
+    def replace_inlink(self, source: "SceneObject", name: str):
+        # remove the inlink from the given source via the given name
+        self.outlinks = [
+            l for l in self.outlinks
+            if not (l.name == name and l.source is source)
+        ]
+
+        # add the new inlink
+        self.inlinks.append(Link(source, self, name))

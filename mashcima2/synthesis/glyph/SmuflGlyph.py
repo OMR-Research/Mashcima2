@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class SmuflGlyph(str, Enum):
+class SmuflGlyphClass(str, Enum):
     """
     Enum that represents glyphs from the SMuFL specification.
     https://www.w3.org/2019/03/smufl13/
