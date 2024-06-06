@@ -1,19 +1,4 @@
-from .geometry.Transform import Transform
-from .scene.Scene import Scene
-from .geometry.Rectangle import Rectangle
-from .geometry.Vector2 import Vector2
-from .scene.Sprite import Sprite
-from .scene.ViewBox import ViewBox
-# from .rendering.InkscapeRenderer import InkscapeRenderer
-from .rendering.BitmapRenderer import BitmapRenderer
 import cv2
-from .scene.visual.HalfNote import HalfNote
-from .scene.AffineSpace import AffineSpace
-from .synthesis.page.NaiveStafflinesSynthesizer \
-    import NaiveStafflinesSynthesizer
-from .loading.MusicXmlLoader import MusicXmlLoader
-from .synthesis.layout.Mashcima1LayoutSynthesizer \
-    import Mashcima1LayoutSynthesizer
 
 
 # from .assets.AssetRepository import AssetRepository
@@ -36,25 +21,14 @@ from .synthesis.layout.Mashcima1LayoutSynthesizer \
 # print(notehead.note)
 # print(Notehead.of_note(note))
 
-# prepare a scene
-scene = Scene()
-scene.add(ViewBox(Rectangle(0, 0, 210, 297))) # A4 paper portrait, mm
 
-img1 = Sprite.debug_box(scene.space, Rectangle(10, 10, 100, 20))
-img2 = Sprite.debug_box(scene.space, Rectangle(50, 25, 100, 20))
-img2.transform = Transform.rotateDegCC(5).then(img2.transform)
 
-staff = MusicXmlLoader().load_file("testing/input.musicxml")
-scene.add(staff)
 
-stafflines = NaiveStafflinesSynthesizer().synthesize(
-    scene.space, Vector2(10, 100), 100
-)
-Mashcima1LayoutSynthesizer().synthesize(stafflines, staff)
-scene.add_closure()
+from mashcima2.orchestration.Mayer2021Model import Mayer2021Model
 
-# render PNG
-renderer = BitmapRenderer()
-bitmap = renderer.render(scene)
+model = Mayer2021Model()
+
+bitmap = model("testing/input.musicxml")
+
 print(bitmap.shape)
 cv2.imwrite("testing/render.png", bitmap)
