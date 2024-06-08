@@ -10,6 +10,7 @@ from ..synthesis.page.NaiveStafflinesSynthesizer \
 from ..synthesis.layout.Mashcima1LayoutSynthesizer \
     import Mashcima1LayoutSynthesizer
 from ..rendering.BitmapRenderer import BitmapRenderer
+import numpy as np
 
 
 class Mayer2021Model(Model):
@@ -20,6 +21,15 @@ class Mayer2021Model(Model):
     > Music Recognition. 16th International Conference on Document Analysis
     > and Recognition, ICDAR 2021. Lausanne, September 8-10, pp. 626-641, 2021.
     """
+    def __init__(self):
+        super().__init__()
+
+        # TODO: define interfaces and register their implementations
+        # self.container.register(...)
+
+    def __call__(self, annotation_file_path: str) -> np.ndarray:
+        return super().__call__(annotation_file_path)
+
     def call(self, annotation_file_path: str):
 
         # TODO: move sub-component initialization into the IoC configuration

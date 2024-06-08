@@ -1,6 +1,7 @@
 import abc
 from ..scene.Scene import Scene
 from typing import Optional
+import punq
 
 
 class Model(abc.ABC):
@@ -13,9 +14,12 @@ class Model(abc.ABC):
     """
     
     def __init__(self):
+        self.container = punq.Container()
+        "IoC container with services used by the synthesis pipeline"
+
         self.scene: Optional[Scene] = None
         "The scene synthesized during the last invocation of this model"
-
+    
     def __call__(self, *args, **kwargs):
         # create a fresh new scene that will contain the synthesized sample
         self.scene = Scene()

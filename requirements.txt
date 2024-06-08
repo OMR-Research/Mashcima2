@@ -3,3 +3,4 @@ opencv-python
 requests
 tqdm
 nameof
+punq
