@@ -8,7 +8,7 @@ from nameof import nameof
 @dataclass
 class Notehead(Glyph):
     # TODO: there may be multiple!
-    note: Optional[Note]
+    note: Optional[Note] = None
 
     @property
     def glyph_class(self) -> str:

@@ -1,3 +1,36 @@
+# import matplotlib.pyplot as plt
+import numpy as np
+# from .synthesis.glyph
+import cv2
+from .rendering.BitmapRenderer import BitmapRenderer
+from .scene.ViewBox import ViewBox
+from .geometry.Rectangle import Rectangle
+from .geometry.Vector2 import Vector2
+from .geometry.Transform import Transform
+from .scene.Scene import Scene
+from .scene.AffineSpace import AffineSpace
+from .synthesis.glyph.MuscimaPPGlyphSynthesizer import MuscimaPPGlyphSynthesizer
+from .assets.AssetRepository import AssetRepository
+from .assets.datasets.MuscimaPP import MuscimaPP
+
+assets = AssetRepository.default()
+muscima_pp = assets.resolve_bundle(MuscimaPP)
+
+scene = Scene()
+scene.add(ViewBox(Rectangle(0, 0, 210, 297)))
+MuscimaPPGlyphSynthesizer(muscima_pp).synthesize(
+    glyph_class="smufl::noteheadBlack",
+    parent_space=scene.space,
+    transform=Transform.translate(Vector2(100, 100))
+)
+scene.add_closure()
+bitmap = BitmapRenderer().render(scene)
+cv2.imwrite("testing/render.png", bitmap)
+
+
+# ===========================================
+exit()
+
 import cv2
 
 

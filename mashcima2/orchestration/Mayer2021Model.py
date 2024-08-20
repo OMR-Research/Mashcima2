@@ -52,6 +52,9 @@ class Mayer2021Model(Model):
             self.scene.space, Vector2(10, 100), 100
         )
         Mashcima1LayoutSynthesizer().synthesize(stafflines, staff)
+        
+        # add objects to scene that are transitively linked from objects
+        # already in scene
         self.scene.add_closure()
 
         # render PNG
