@@ -25,7 +25,10 @@ Create a virtual environment and install dependencies:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip3 install -r requirements.txt
+.venv/bin/pip3 install -e .
+
+# to run jupyter notebooks:
+.venv/bin/pip3 install -e .[jupyter]
 ```
 
 
@@ -53,3 +56,11 @@ The first milestone to hit is to convert Mashcima 1 into the modular structure o
     - parsing & conversions of formats
     - MusicXML as the primary input format
     - generation of synthetic music
+
+
+## Packaging and development notes
+
+- Read this: https://packaging.python.org/en/latest/tutorials/packaging-projects/
+- Package configuration inspired by this: https://github.com/vega/altair/blob/main/pyproject.toml
+- For development setup inspiration check out: https://altair-viz.github.io/getting_started/installation.html#development-installation
+- jupyter notebooks in git: https://mg.readthedocs.io/git-jupyter.html

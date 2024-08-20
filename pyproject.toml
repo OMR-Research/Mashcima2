@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mashcima2"
+authors = [
+  { name="Jiří Mayer", email="mayer@ufal.mff.cuni.cz" },
+]
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "requests",
+    "tqdm",
+    "nameof",
+    "punq"
+]
+description = "Training data synthesizer for OMR"
+readme = "README.md"
+requires-python = ">=3.8"
+dynamic = ["version"]
+license-files = { paths = ["LICENSE"] }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/OMR-Research/Mashcima2"
+Source = "https://github.com/OMR-Research/Mashcima2"
+Issues = "https://github.com/OMR-Research/Mashcima2/issues"
+
+[project.optional-dependencies]
+jupyter = [
+    "jupyter",
+    "jupyterlite-core",
+    "jupyterlite-pyodide-kernel"
+]
+
+[tool.hatch.version]
+path = "mashcima2/__init__.py"
+
+[tool.hatch.build]
+include = ["/mashcima2"]

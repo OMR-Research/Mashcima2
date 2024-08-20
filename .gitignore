@@ -8,6 +8,9 @@ mashcima_assets/
 # MuseScore
 .mscbackup
 
+# jupyter lite
+.jupyterlite.doit.db
+
 
 ###############################
 # Default gitignore by GitHub #
