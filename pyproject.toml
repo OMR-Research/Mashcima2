@@ -33,7 +33,8 @@ Issues = "https://github.com/OMR-Research/Mashcima2/issues"
 [project.optional-dependencies]
 jupyter = [
     "jupyter",
-    "voila"
+    "voila",
+    "ipycytoscape"
 ]
 
 [tool.hatch.version]

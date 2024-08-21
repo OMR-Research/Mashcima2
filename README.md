@@ -64,4 +64,4 @@ The first milestone to hit is to convert Mashcima 1 into the modular structure o
 - Package configuration inspired by this: https://github.com/vega/altair/blob/main/pyproject.toml
 - For development setup inspiration check out: https://altair-viz.github.io/getting_started/installation.html#development-installation
 - jupyter notebooks in git: https://mg.readthedocs.io/git-jupyter.html
-- making jupyter readonly: https://coding-stream-of-consciousness.com/2018/11/12/read-only-protected-jupyter-notebooks/
+- deploying voila: https://voila.readthedocs.io/en/stable/deploy.html
