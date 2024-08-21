@@ -1,7 +1,7 @@
 import abc
 from ..scene.Scene import Scene
 from typing import Optional
-import punq
+from .Container import Container
 
 
 class Model(abc.ABC):
@@ -14,7 +14,7 @@ class Model(abc.ABC):
     """
     
     def __init__(self):
-        self.container = punq.Container()
+        self.container = Container()
         "IoC container with services used by the synthesis pipeline"
 
         self.scene: Optional[Scene] = None

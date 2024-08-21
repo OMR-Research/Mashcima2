@@ -7,6 +7,7 @@ from ..geometry.Transform import Transform
 from ..loading.MusicXmlLoader import MusicXmlLoader
 from ..synthesis.page.NaiveStafflinesSynthesizer \
     import NaiveStafflinesSynthesizer
+from ..synthesis.page.StafflinesSynthesizer import StafflinesSynthesizer
 from ..synthesis.layout.Mashcima1LayoutSynthesizer \
     import Mashcima1LayoutSynthesizer
 from ..rendering.BitmapRenderer import BitmapRenderer
@@ -25,7 +26,10 @@ class Mayer2021Model(Model):
         super().__init__()
 
         # TODO: define interfaces and register their implementations
-        # self.container.register(...)
+        self.container.interface(
+            StafflinesSynthesizer,
+            NaiveStafflinesSynthesizer
+        )
 
     def __call__(self, annotation_file_path: str) -> np.ndarray:
         return super().__call__(annotation_file_path)
@@ -48,7 +52,8 @@ class Mayer2021Model(Model):
         self.scene.add(staff)
 
         # synthesize stafflines
-        stafflines = NaiveStafflinesSynthesizer().synthesize(
+        stafflines_synthesizer = self.container.resolve(StafflinesSynthesizer)
+        stafflines = stafflines_synthesizer.synthesize(
             self.scene.space, Vector2(10, 100), 100
         )
         Mashcima1LayoutSynthesizer().synthesize(stafflines, staff)

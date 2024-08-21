@@ -6,6 +6,7 @@ from mashcima2.geometry.Vector2 import Vector2
 from mashcima2.geometry.Rectangle import Rectangle
 from mashcima2.geometry.Transform import Transform
 from mashcima2.geometry.units import px_to_mm
+from .StafflinesSynthesizer import StafflinesSynthesizer
 
 
 MUSCIMA_LINE_WIDTH = px_to_mm(1.5, dpi=300)
@@ -29,8 +30,7 @@ class NaiveStaffCoordinateSystem(StaffCoordinateSystem):
         )
 
 
-# TODO: define a StafflinesSynthesizer interface and inherit
-class NaiveStafflinesSynthesizer:
+class NaiveStafflinesSynthesizer(StafflinesSynthesizer):
     """Simple stafflines synthesizer that just creates straight stafflines"""
     def synthesize(
         self,
