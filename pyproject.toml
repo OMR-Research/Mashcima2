@@ -19,7 +19,6 @@ description = "Training data synthesizer for OMR"
 readme = "README.md"
 requires-python = ">=3.8"
 dynamic = ["version"]
-license-files = { paths = ["LICENSE"] }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
@@ -34,8 +33,7 @@ Issues = "https://github.com/OMR-Research/Mashcima2/issues"
 [project.optional-dependencies]
 jupyter = [
     "jupyter",
-    "jupyterlite-core",
-    "jupyterlite-pyodide-kernel"
+    "voila"
 ]
 
 [tool.hatch.version]
