@@ -18,7 +18,7 @@ class MuscimaPP(AssetBundle):
         )
 
         print("Extracting the zip...")
-        with zipfile.ZipFile(downloaded_zip, 'r') as zip_ref:
+        with zipfile.ZipFile(downloaded_zip, "r") as zip_ref:
             zip_ref.extractall(self.bundle_directory)
         downloaded_zip.unlink()
 

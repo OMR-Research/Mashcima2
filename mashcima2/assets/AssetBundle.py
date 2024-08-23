@@ -2,9 +2,22 @@ import abc
 from pathlib import Path
 import shutil
 import json
+from typing import TypeVar, Type
 
 
-BUNDLE_FILENAME = "bundle.json"
+T = TypeVar("T", bound="AssetBundle")
+
+
+class BundleResolver(abc.ABC):
+    """Interface representing something that can resolve asset bundles"""
+    
+    @abc.abstractmethod
+    def resolve_bundle(self, bundle_type: Type[T]) -> T:
+        """Ensures that a bundle is installed and returns its instance"""
+        raise NotImplementedError
+
+
+BUNDLE_META_FILE = "bundle.json"
 
 
 class AssetBundle(abc.ABC):
@@ -18,10 +31,17 @@ class AssetBundle(abc.ABC):
     Asset bundle is a group of these assets that is downloaded, unpacked,
     and used as a single unit. It is a "library of assets".
     """
-    def __init__(self, bundle_directory: Path):
+    def __init__(
+        self,
+        bundle_directory: Path,
+        dependency_resolver: BundleResolver
+    ):
         assert isinstance(bundle_directory, Path)
         self.bundle_directory = bundle_directory
         "Path to the directory where the bundle should be installed"
+
+        self.dependency_resolver = dependency_resolver
+        "Use this to resolve additional bundle dependencies"
 
     @abc.abstractmethod
     def install(self):
@@ -40,9 +60,9 @@ class AssetBundle(abc.ABC):
             # such as install datetime, install mashcima version, etc.
             "installed": True
         }
-        with open(self.bundle_directory / BUNDLE_FILENAME, "w") as f:
+        with open(self.bundle_directory / BUNDLE_META_FILE, "w") as f:
             json.dump(metadata, f)
     
     def metadata_exists(self) -> bool:
         """Returns true if the metadata file exists for the bundle"""
-        return (self.bundle_directory / BUNDLE_FILENAME).is_file()
+        return (self.bundle_directory / BUNDLE_META_FILE).is_file()

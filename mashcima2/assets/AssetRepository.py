@@ -1,13 +1,13 @@
 from pathlib import Path
 from typing import TypeVar, Type
-from .AssetBundle import AssetBundle
+from .AssetBundle import AssetBundle, BundleResolver
 from ..config import MC_ASSETS_CACHE
 
 
 T = TypeVar("T", bound=AssetBundle)
 
 
-class AssetRepository:
+class AssetRepository(BundleResolver):
     """
     A folder on the local machine, where asset bundles are downloaded to
     and prepared. It also acts as the manager that installs and resolves
@@ -32,15 +32,20 @@ class AssetRepository:
             Path(MC_ASSETS_CACHE).resolve()
         )
     
-    def resolve_bundle(self, bundle_type: Type[T]) -> T:
+    def resolve_bundle(self, bundle_type: Type[T], force_install=False) -> T:
         """Ensures that a bundle is installed and returns its instance"""
         # instantiate the bundle
         bundle = bundle_type(
-            bundle_directory=self.path / bundle_type.__name__
+            bundle_directory=self.path / bundle_type.__name__,
+            dependency_resolver=self
         )
 
+        # run __post_init__ to resolve dependencies and do additional set-ups
+        if hasattr(bundle, "__post_init__"):
+            bundle.__post_init__()
+
         # do nothing if already installed
-        if bundle.metadata_exists():
+        if bundle.metadata_exists() and not force_install:
             return bundle
         
         print(f"[Mashcima Assets]: Installing bundle {bundle_type.__name__}...")
