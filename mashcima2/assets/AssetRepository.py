@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import TypeVar, Type
 from .AssetBundle import AssetBundle
+from ..config import MC_ASSETS_CACHE
 
 
 T = TypeVar("T", bound=AssetBundle)
@@ -26,10 +27,9 @@ class AssetRepository:
 
     @staticmethod
     def default() -> "AssetRepository":
-        """Returns the default asset repository to use for a python project"""
+        """Returns the default asset repository to use this process"""
         return AssetRepository(
-            # kinda like "node_modules" for npm
-            Path.cwd() / "mashcima_assets"
+            Path(MC_ASSETS_CACHE).resolve()
         )
     
     def resolve_bundle(self, bundle_type: Type[T]) -> T:
