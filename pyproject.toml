@@ -13,7 +13,10 @@ dependencies = [
     "requests",
     "tqdm",
     "nameof",
-    "punq"
+    "punq",
+
+    "muscima",
+    "scikit-image", # needed for `muscima`
 ]
 description = "Training data synthesizer for OMR"
 readme = "README.md"
