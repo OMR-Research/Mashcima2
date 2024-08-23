@@ -4,6 +4,9 @@ from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from typing import Dict
 
 
+# TODO: this should be a "MppGlyphMetadata" linked to a specific glyph instance
+# (because outside the core of mashcima, composition should be used over inheritance)
+
 @dataclass
 class MppGlyph(Glyph):
     """A glyph from the MUSCIMA++ dataset"""

@@ -1,4 +1,4 @@
-from typing import Any, Set, Type, TypeVar, List, Optional
+from typing import Any, Type, TypeVar, List, Optional
 from dataclasses import dataclass, field
 
 
@@ -15,9 +15,6 @@ class Link:
         self.source = source
         self.target = target
         self.name = name
-
-    def __hash__(self) -> int:
-        return hash((id(self.source), id(self.target), self.name))
     
     def __eq__(self, other) -> bool:
         if not isinstance(other, Link):
@@ -36,8 +33,8 @@ class Link:
 
     def attach(self):
         """Add the link into the graph"""
-        self.source.outlinks.add(self)
-        self.target.inlinks.add(self)
+        self.source.outlinks.append(self)
+        self.target.inlinks.append(self)
 
     def detach(self):
         """Remove the link from the graph"""
@@ -47,8 +44,8 @@ class Link:
 
 @dataclass
 class SceneObject:
-    inlinks: Set[Link] = field(default_factory=set, init=False, repr=False)
-    outlinks: Set[Link] = field(default_factory=set, init=False, repr=False)
+    inlinks: List[Link] = field(default_factory=list, init=False, repr=False)
+    outlinks: List[Link] = field(default_factory=list, init=False, repr=False)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "inlinks":
@@ -68,7 +65,7 @@ class SceneObject:
         super().__setattr__(name, value)
     
     def _destroy_outlinks_for(self, name: str):
-        for link in list(self.outlinks):
+        for link in self.outlinks:
             if link.name == name:
                 link.detach()
     
