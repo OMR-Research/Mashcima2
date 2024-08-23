@@ -3,7 +3,7 @@ from typing import TypeVar, Type
 
 
 T = TypeVar("T")
-U = TypeVar("U")
+U = TypeVar("U", bound=T)
 
 
 class Container:
@@ -11,6 +11,9 @@ class Container:
     def __init__(self):
         self._container = punq.Container()
     
+    def instance(self, instance_type: Type[T], instance: T):
+        self._container.register(instance_type, instance=instance)
+
     def type(self, concrete_type: Type[T]):
         self._container.register(
             concrete_type,

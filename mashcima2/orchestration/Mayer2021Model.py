@@ -11,6 +11,10 @@ from ..synthesis.page.StafflinesSynthesizer import StafflinesSynthesizer
 from ..synthesis.layout.Mashcima1LayoutSynthesizer \
     import Mashcima1LayoutSynthesizer
 from ..rendering.BitmapRenderer import BitmapRenderer
+from ..synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
+from ..synthesis.glyph.MuscimaPPGlyphSynthesizer import MuscimaPPGlyphSynthesizer
+from mashcima2.assets.datasets.MuscimaPP import MuscimaPP
+from mashcima2.assets.AssetRepository import AssetRepository
 import numpy as np
 
 
@@ -25,10 +29,19 @@ class Mayer2021Model(Model):
     def __init__(self):
         super().__init__()
 
-        # TODO: define interfaces and register their implementations
+        # TODO: this should be done by the glyph synthesizer, not by us
+        assets = AssetRepository.default()
+        muscima_pp = assets.resolve_bundle(MuscimaPP)
+
+        self.container.instance(MuscimaPP, muscima_pp)
+        self.container.type(Mashcima1LayoutSynthesizer)
         self.container.interface(
             StafflinesSynthesizer,
             NaiveStafflinesSynthesizer
+        )
+        self.container.interface(
+            GlyphSynthesizer,
+            MuscimaPPGlyphSynthesizer
         )
 
     def __call__(self, annotation_file_path: str) -> np.ndarray:
@@ -56,7 +69,8 @@ class Mayer2021Model(Model):
         stafflines = stafflines_synthesizer.synthesize(
             self.scene.space, Vector2(10, 100), 100
         )
-        Mashcima1LayoutSynthesizer().synthesize(stafflines, staff)
+        layout_synthesizer = self.container.resolve(Mashcima1LayoutSynthesizer)
+        layout_synthesizer.synthesize(stafflines, staff)
         
         # add objects to scene that are transitively linked from objects
         # already in scene

@@ -34,6 +34,7 @@ Issues = "https://github.com/OMR-Research/Mashcima2/issues"
 jupyter = [
     "jupyter",
     "voila",
+    "ipympl",
     "ipycytoscape"
 ]
 

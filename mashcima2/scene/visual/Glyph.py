@@ -10,7 +10,7 @@ from typing import List
 class Glyph(SceneObject, metaclass=abc.ABCMeta):
     """
     A glyph is a visual unit of the notation. It can be detected, segmented,
-    classified. It is composed of a single sprite.
+    classified.
 
     It is: notehead, stem, flag, ledger line, staffline,
     But it's also: notehead-stem-flag ligature, ledger-notehead-stem ligature

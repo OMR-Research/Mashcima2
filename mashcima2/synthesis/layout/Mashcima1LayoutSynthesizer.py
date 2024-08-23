@@ -7,6 +7,7 @@ from mashcima2.scene.Sprite import Sprite
 from mashcima2.scene.visual.HalfNote import HalfNote
 from mashcima2.geometry.Transform import Transform
 from mashcima2.geometry.Rectangle import Rectangle
+from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 
 
 def dummy_half_note_synthesizer(
@@ -32,6 +33,9 @@ def dummy_half_note_synthesizer(
 # IN -> semantic scene object graph
 # OUT -> visual scene object graph
 class Mashcima1LayoutSynthesizer:
+    def __init__(self, glyph_synthesizer: GlyphSynthesizer):
+        self.glyph_synthesizer = glyph_synthesizer
+
     def synthesize(self, stafflines: Stafflines, staff: Staff):
         time_position = 5
         TIME_STEP = 7

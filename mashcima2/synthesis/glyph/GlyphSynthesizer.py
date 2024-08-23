@@ -10,19 +10,10 @@ class GlyphSynthesizer(abc.ABC):
     Represents an interface for a synthesizer that produces glyphs
     """
     @abc.abstractmethod
-    def synthesize(
-        self,
-        glyph_class: str,
-        parent_space: AffineSpace,
-        transform: Transform
-    ) -> Glyph:
+    def synthesize(self, glyph_class: str) -> Glyph:
         """Synthesizes a new glyph
         
         :glyph_class What glyph to synthesize.
-        :parent_space The affine space that will become the parent
-            of the new glyph
-        :transform Where to place the new glyph in the parent space.
-            The origin point of the glyph depends on the glyph class.
         """
         raise NotImplementedError
     
