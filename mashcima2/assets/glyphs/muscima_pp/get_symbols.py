@@ -34,7 +34,7 @@ def get_whole_notes(page: MppPage) -> List[MppGlyph]:
     for o in crop_objects:
         glyph = MppGlyph(
             mpp_writer=page.mpp_writer,
-            mpp_document=page.mpp_document,
+            mpp_piece=page.mpp_piece,
             assigned_smufl_glyph_class=SmuflGlyphClass.noteWhole
         )
         glyph.sprites = [

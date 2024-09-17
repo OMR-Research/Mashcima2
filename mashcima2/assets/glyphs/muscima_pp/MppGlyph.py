@@ -14,7 +14,7 @@ class MppGlyph(Glyph):
     mpp_writer: int = None
     "Writer index (1 to 50) from the MUSCIMA++ dataset"
 
-    mpp_document: int = None
+    mpp_piece: int = None
     "Document index (1 to 20) from the MUSCIMA++ dataset"
 
     assigned_smufl_glyph_class: SmuflGlyphClass = None
@@ -22,7 +22,9 @@ class MppGlyph(Glyph):
 
     def __post_init__(self):
         assert self.mpp_writer is not None
-        assert self.mpp_document is not None
+        assert self.mpp_writer >= 1 and self.mpp_writer <= 50
+        assert self.mpp_piece is not None
+        assert self.mpp_piece >= 1 and self.mpp_piece <= 20
         assert self.assigned_smufl_glyph_class is not None
     
     @property

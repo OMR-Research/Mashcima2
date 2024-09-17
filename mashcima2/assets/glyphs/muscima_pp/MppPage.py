@@ -5,11 +5,16 @@ import re
 
 
 class MppPage:
+    """
+    The CVC-MUSCIMA dataset consists of 1000 scanned pages.
+    This class represents one of them, annotated according to the MUSCIMA++
+    standard. (Note: MUSCIMA++ contains only 140 pages out of the 1000)
+    """
     def __init__(
         self,
         crop_objects: List[CropObject],
         mpp_writer: int,
-        mpp_document: int
+        mpp_piece: int
     ):
         self.crop_objects = crop_objects
         "List of cropobjects as they are loaded by the muscima library"
@@ -20,11 +25,13 @@ class MppPage:
         }
         "Dictionary for fast id lookup"
 
+        assert mpp_writer >= 1 and mpp_writer <= 50
         self.mpp_writer = mpp_writer
         "Writer index (1 to 50) from the MUSCIMA++ dataset"
 
-        self.mpp_document = mpp_document
-        "Document index (1 to 20) from the MUSCIMA++ dataset"
+        assert mpp_piece >= 1 and mpp_piece <= 20
+        self.mpp_piece = mpp_piece
+        "Music piece index (1 to 20) from the MUSCIMA++ dataset"
 
     @staticmethod
     def load(path: Path) -> "MppPage":
@@ -32,9 +39,9 @@ class MppPage:
 
         m = re.match(r"CVC-MUSCIMA_W-(\d+)_N-(\d+)_D-ideal", path.stem)
         mpp_writer = int(m.group(1))
-        mpp_document = int(m.group(2))
+        mpp_piece = int(m.group(2))
 
-        return MppPage(crop_objects, mpp_writer, mpp_document)
+        return MppPage(crop_objects, mpp_writer, mpp_piece)
     
     def get(self, objid: int) -> CropObject:
         """Looks up a crop object by its integer ID"""
