@@ -23,6 +23,33 @@ def mpp_mask_to_sprite_bitmap(mask: np.ndarray):
     return bitmap
 
 
+def get_black_noteheads(page: MppPage) -> List[MppGlyph]:
+    crop_objects = [
+        o for o in page.crop_objects
+        if o.clsname == "notehead-full"
+        and not page.has_outlink_to(o, "ledger_line")
+    ]
+
+    glyphs = []
+    for o in crop_objects:
+        glyph = MppGlyph(
+            mpp_writer=page.mpp_writer,
+            mpp_piece=page.mpp_piece,
+            assigned_smufl_glyph_class=SmuflGlyphClass.noteheadBlack
+        )
+        glyph.sprites = [
+            Sprite(
+                space=glyph.space,
+                bitmap=mpp_mask_to_sprite_bitmap(o.mask),
+                bitmap_origin=Point(0.5, 0.5),
+                dpi=MUSCIMA_PP_DPI
+            )
+        ]
+        glyphs.append(glyph)
+
+    return glyphs
+
+
 def get_whole_notes(page: MppPage) -> List[MppGlyph]:
     crop_objects = [
         o for o in page.crop_objects

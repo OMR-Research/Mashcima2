@@ -7,9 +7,16 @@ class SmuflGlyphClass(str, Enum):
     https://www.w3.org/2019/03/smufl13/
     """
     
+    # Noteheads
+    # https://w3c.github.io/smufl/latest/tables/noteheads.html
+    noteheadWhole = "smufl::noteheadWhole"
+    noteheadHalf = "smufl::noteheadHalf"
+    noteheadBlack = "smufl::noteheadBlack"
+
     # Individual Notes
     # https://www.w3.org/2019/03/smufl13/tables/individual-notes.html
-    # ...
+    # NOTE: This should only be used for ligatures,
+    # the default usecase is synthesizing notehead-stem-flag separately.
     noteWhole = "smulf::noteWhole"
     noteHalfUp = "smulf::noteHalfUp"
     noteHalfDown = "smulf::noteHalfDown"

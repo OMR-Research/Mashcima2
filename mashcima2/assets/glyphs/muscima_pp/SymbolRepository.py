@@ -13,3 +13,5 @@ class SymbolRepository:
     # TODO: this needs to be figured out and defined
 
     whole_notes: List[MppGlyph] = field(default_factory=list)
+
+    black_noteheads: List[MppGlyph] = field(default_factory=list)

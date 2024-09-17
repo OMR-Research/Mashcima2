@@ -1,7 +1,7 @@
 from ...AssetBundle import AssetBundle
 from ...datasets.MuscimaPP import MuscimaPP
 from .MppPage import MppPage
-from .get_symbols import get_whole_notes
+from .get_symbols import get_whole_notes, get_black_noteheads
 from .SymbolRepository import SymbolRepository
 from pathlib import Path
 import pickle
@@ -26,11 +26,13 @@ class MuscimaPPGlyphs(AssetBundle):
         for document_path in document_paths:
             page = MppPage.load(document_path)
 
+            black_noteheads = get_black_noteheads(page)
             whole_notes = get_whole_notes(page)
             
+            repository.black_noteheads += black_noteheads
             repository.whole_notes += whole_notes
 
-            if len(whole_notes) > 0:
+            if len(black_noteheads) > 0:
                 break
         
         # TODO: store all glyphs in a pickle that can then be loaded
@@ -48,3 +50,12 @@ class MuscimaPPGlyphs(AssetBundle):
             repository = pickle.load(file)
         assert isinstance(repository, SymbolRepository)
         return repository
+
+
+if __name__ == "__main__":
+    print("Re-installing MUSCIMA++ glyphs...")
+    from ...AssetRepository import AssetRepository
+    from pathlib import Path
+    assets = AssetRepository(Path("mashcima_assets"))
+    assets.resolve_bundle(MuscimaPPGlyphs, force_install=True)
+    print("Done.")
