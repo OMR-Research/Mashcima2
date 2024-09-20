@@ -5,8 +5,8 @@ from .Measure import Measure
 
 
 @dataclass
-class Staff(SceneObject):
-    # TODO: get rid of this, it's only encoded via line/page breaks
-
-    # TODO: staff vs. grandstaff vs. system
+class Part(SceneObject):
+    """Represents a single part (an instrument) of a score"""
+    
     measures: List[Measure]
+    "A part consists of a list of measures"

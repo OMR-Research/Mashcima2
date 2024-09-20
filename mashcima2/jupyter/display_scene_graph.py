@@ -108,3 +108,11 @@ def display_scene_graph(scene: Scene):
 
     IPython.display.display(widget)
     IPython.display.display(out)
+
+
+def display_scene_object_graph(obj: SceneObject):
+    """Displays an interactive scene graph for a single scene object"""
+    scene = Scene()
+    scene.add(obj)
+    scene.add_closure()
+    display_scene_graph(scene)
