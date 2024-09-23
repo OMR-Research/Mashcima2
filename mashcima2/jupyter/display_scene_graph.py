@@ -6,6 +6,7 @@ from typing import List
 import ipywidgets
 import IPython
 import pprint
+from copy import deepcopy
 
 
 _CYTOSCAPE_STYLE = [
@@ -112,7 +113,12 @@ def display_scene_graph(scene: Scene):
 
 def display_scene_object_graph(obj: SceneObject):
     """Displays an interactive scene graph for a single scene object"""
+    # isolate the given object from the graph by making a copy
+    # and removing all inlinks
+    obj_clone = deepcopy(obj)
+    for link in obj_clone.inlinks:
+        link.detach()
+    
     scene = Scene()
-    scene.add(obj)
-    scene.add_closure()
+    scene.add(obj_clone)
     display_scene_graph(scene)

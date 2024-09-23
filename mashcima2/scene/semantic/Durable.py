@@ -7,11 +7,13 @@ from .TypeDuration import TypeDuration
 @dataclass
 class Durable(SceneObject):
     """Durable is something that has duration (note or rest)"""
-    type_duration: TypeDuration
     
-    # TODO: load/define these:
-    fractional_duration: Fraction
+    type_duration: TypeDuration
+    """The duration type that the note has visually (e.g. an eighth note)"""
+    
     duration_dots: int
-    measure_onset: Fraction
-
-    # TODO: time-modification from tuplets
+    """How many duration dots are there to augment the note's duration"""
+    
+    fractional_duration: Fraction
+    """How many quarter notes does the note actually take up (e.g. an eighth
+    note triplet takes up less time than a regular eighth note)"""

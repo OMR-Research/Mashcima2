@@ -1,4 +1,5 @@
 from enum import Enum
+from fractions import Fraction
 
 
 class TypeDuration(str, Enum):
@@ -24,3 +25,27 @@ class TypeDuration(str, Enum):
     breve = "breve"
     long = "long"
     maxima = "maxima"
+
+    def to_quarter_multiple(self) -> Fraction:
+        """Returns the number of beats (quarter notes) that this duration type
+        takes up in total."""
+        _LOOKUP = {
+            "1024th":  Fraction(1, 256),
+            "512th":   Fraction(1, 128),
+            "256th":   Fraction(1, 64),
+            "128th":   Fraction(1, 32),
+            "64th":    Fraction(1, 16),
+            "32nd":    Fraction(1, 8),
+            "16th":    Fraction(1, 4),
+            "eighth":  Fraction(1, 2),
+            "quarter": Fraction(1, 1), # one
+            "half":    Fraction(2, 1),
+            "whole":   Fraction(4, 1),
+            "breve":   Fraction(8, 1),
+            "long":    Fraction(16, 1),
+            "maxima":  Fraction(32, 1),
+        }
+        beats = _LOOKUP.get(self.value, None)
+        if beats is None:
+            raise Exception("Unknown beat count for type " + self)
+        return beats

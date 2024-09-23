@@ -6,11 +6,12 @@ from ..scene.semantic.Staff import Staff
 from ..scene.semantic.Durable import Durable
 from ..scene.semantic.Note import Note
 from ..scene.semantic.Rest import Rest
+from ..scene.semantic.MeasureRest import MeasureRest
 from ..scene.semantic.TypeDuration import TypeDuration
 from ..scene.semantic.Pitch import Pitch
 from typing import List, TextIO, Optional
 from fractions import Fraction
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import io
 
 
@@ -19,8 +20,46 @@ class _PartState:
     part_id: str
     "MusicXML ID of the currently parsed part, used for error localization"
 
-    measure_number: Optional[str] = field(default=None)
+    measure_number: Optional[str] = None
     "Currently parsed measure number, or None if it was not yet defined/parsed"
+
+    divisions: Optional[int] = None
+    "Number of MusicXML duration units per quarter note"
+
+    beats_per_measure: Optional[int] = None
+    "How many beats there are in one measure"
+
+    beat_type: Optional[int] = None
+    "Type of the beat (inverse of the beat fractional duration)"
+
+    beat_fractional_duration: Optional[Fraction] = None
+    "How many quarter notes does a single beat take up"
+
+    measure_fractional_duration: Optional[Fraction] = None
+    "How many quarter notes does a whole measure take up"
+
+
+@dataclass
+class _MeasureState:
+    part_state: _PartState
+    "Reference to the part state"
+
+    measure: Measure
+    "The measure that is being constructed as it's being parsed"
+
+    fractional_measure_onset: Fraction = Fraction(0, 1) # zero
+    """How many quarter notes from the start of the measure are we currently"""
+
+    def seek_forward(self, fractional_duration: Fraction):
+        self.fractional_measure_onset += fractional_duration
+        mfd = self.part_state.measure_fractional_duration
+        if self.fractional_measure_onset > mfd:
+            self.fractional_measure_onset = mfd
+    
+    def seek_backup(self, fractional_duration: Fraction):
+        self.fractional_measure_onset -= fractional_duration
+        if self.fractional_measure_onset < 0:
+            self.fractional_measure_onset = Fraction(0, 1) # zero
 
 
 IGNORED_MEASURE_ELEMENTS = set([
@@ -39,6 +78,9 @@ class MusicXmlLoader:
         
         self._part_state: Optional[_PartState] = None
         "Part state, not None when parsing a part"
+
+        self._measure_state: Optional[_MeasureState] = None
+        "Measure state, not None when parsing a measure"
 
     def _error(self, *values):
         if self._part_state:
@@ -124,21 +166,22 @@ class MusicXmlLoader:
         assert measure_element.tag == "measure"
 
         self._part_state.measure_number = measure_element.attrib.get("number")
-
-        durables: List[Durable] = []
+        self._measure_state = _MeasureState(
+            part_state=self._part_state,
+            measure=Measure()
+        )
 
         for element in measure_element:
             if element.tag in IGNORED_MEASURE_ELEMENTS:
                 continue
             elif element.tag == "note":
-                durable = self._load_note(element)
-                durables.append(durable)
+                self._load_note(element)
             elif element.tag == "attributes":
-                pass # TODO: process attributes
+                self._load_attributes(element)
             elif element.tag == "backup":
-                pass # TODO: process backup element
+                self._load_backup(element)
             elif element.tag == "forward":
-                pass # TODO: process forward element
+                self._load_forward(element)
             else:
                 self._error(
                     "Unexpected <measure> element:",
@@ -146,56 +189,272 @@ class MusicXmlLoader:
                     element.attrib
                 )
         
-        return Measure(
-            durables=durables
-        )
+        measure = self._measure_state.measure
+        self._measure_state = None
+        
+        return measure
 
-    def _load_note(self, note_element: ET.Element) -> Durable:
+    def _load_note(self, note_element: ET.Element):
         assert note_element.tag == "note"
 
+        # <grace>
+        def _grace():
+            grace_element = note_element.find("grace")
+            is_grace_note = grace_element is not None
+            is_grace_slash = False
+            if is_grace_note:
+                if grace_element.attrib.get("slash") == "yes":
+                    is_grace_slash = True
+            return is_grace_note, is_grace_slash
+        
+        # [chord]
+        def _chord():
+            chord_element = note_element.find("chord")
+            is_chord = chord_element is not None
+            return is_chord
+
         # <rest> or <pitch>
-        rest_element = note_element.find("rest")
-        is_measure_rest = False
-        pitch: Optional[Pitch] = None
-        if rest_element is not None:
-            is_measure_rest = rest_element.attrib.get("measure") == "yes"
-        else:
-            pitch_element = note_element.find("pitch")
-            step = pitch_element.find("step").text
-            octave = pitch_element.find("octave").text
-            alter = None
-            alter_element = pitch_element.find("alter")
-            if alter_element is not None:
-                alter = alter_element.text
-            pitch = Pitch.parse(octave, step, alter)
+        def _rest_or_pitch():
+            rest_element = note_element.find("rest")
+            is_measure_rest = False
+            pitch: Optional[Pitch] = None
+            if rest_element is not None:
+                is_measure_rest = rest_element.attrib.get("measure") == "yes"
+            else:
+                pitch_element = note_element.find("pitch")
+                step = pitch_element.find("step").text
+                octave = pitch_element.find("octave").text
+                alter = None
+                alter_element = pitch_element.find("alter")
+                if alter_element is not None:
+                    alter = alter_element.text
+                pitch = Pitch.parse(octave, step, alter)
+            return pitch, is_measure_rest
+        
+        # <voice>
+        def _voice():
+            voice_element = note_element.find("voice")
+            voice_name: Optional[str] = None
+            if voice_element is not None:
+                voice_name = voice_element.text
+            return voice_name
 
         # <type>, missing only for rest measures
-        type_element = note_element.find("type")
-        type_duration: Optional[TypeDuration] = None
-        if type_element is not None:
-            type_duration = TypeDuration(type_element.text)
-        elif is_measure_rest:
-            pass # leave type duration at None
-        else:
-            self._error("Note does not have <type>:", ET.tostring(note_element))
-
-        # --- --- --- ---
-
-        # TODO: handle measure rests (missing type_duration)
-
-        durable_kwargs = {
-            "type_duration": type_duration,
-            "fractional_duration": Fraction(1, 999), # TODO: decode
-            "duration_dots": 0, # TODO: decode
-            "measure_onset": Fraction(1, 999) # TODO: decode
-        }
+        def _type(is_measure_rest: bool):
+            type_element = note_element.find("type")
+            type_duration: Optional[TypeDuration] = None
+            if type_element is not None:
+                type_duration = TypeDuration(type_element.text)
+            elif is_measure_rest:
+                pass # leave type duration at None
+            else:
+                self._error("Note does not have <type>:", ET.tostring(note_element))
+            return type_duration
         
-        if note_element.find("rest") is not None:
-            durable = Rest(**durable_kwargs)
-        else:
-            durable = Note(
-                pitch=pitch,
-                **durable_kwargs
+        # <time-modification> (tuplets rhythm-wise)
+        def _time_modification() -> Optional[Fraction]:
+            # triplet is 3in2 (3 actual in 2 normal notes)
+            # which translates to 2/3 = 0.66 times the normal duration
+            if note_element.find("time-modification") is None:
+                return None # no time modification
+            actual = note_element.find("time-modification/actual-notes").text
+            normal = note_element.find("time-modification/normal-notes").text
+            return Fraction(int(normal), int(actual))
+        
+        # <dot>
+        def _dot() -> int:
+            return len(note_element.findall("dot"))
+        
+        # TODO: <accidental>
+        # TODO: <stem>
+        # TODO: <staff>
+        # TODO: <beam>
+        # TODO: <tied>
+        # TODO: <tuplet>
+        
+        # === decode the <note> element ===
+
+        is_grace_note, is_grace_slash = _grace()
+        is_chord = _chord()
+        pitch, is_measure_rest = _rest_or_pitch() # None pitch for rests
+        voice_name = _voice()
+        type_duration = _type(is_measure_rest) # None for measure rests
+        time_modification = _time_modification()
+        duration_dots = _dot()
+        
+        fractional_duration = self._part_state.measure_fractional_duration \
+            if is_measure_rest \
+            else self._decode_fractional_duration(
+                type_duration=type_duration,
+                duration_dots=duration_dots,
+                time_modification=time_modification
             )
+
+        # right now just ignore grace notes
+        # TODO: decode grace notes
+        if is_grace_note:
+            return None
         
-        return durable
+        # determine onset and advance onset state
+        onset = self._measure_state.fractional_measure_onset
+        if is_chord:
+            onset -= fractional_duration
+        if not is_chord:
+            self._measure_state.seek_forward(fractional_duration)
+
+        # handle measure rests
+        if is_measure_rest:
+            assert self._part_state.measure_fractional_duration is not None, \
+                "Measure duration has not been loaded, yet we're parsing notes"
+            assert onset == 0, "Measure rest should begin at 0 onset"
+            self._measure_state.measure.add_durable(
+                durable=MeasureRest(
+                    fractional_duration=fractional_duration
+                ),
+                onset=onset
+            )
+            return
+        
+        # handle rests
+        if pitch is None:
+            self._measure_state.measure.add_durable(
+                durable=Rest(
+                    type_duration=type_duration,
+                    duration_dots=duration_dots,
+                    fractional_duration=fractional_duration,
+                ),
+                onset=onset
+            )
+            return
+        
+        # handle notes
+        self._measure_state.measure.add_durable(
+            durable=Note(
+                pitch=pitch,
+                type_duration=type_duration,
+                duration_dots=duration_dots,
+                fractional_duration=fractional_duration,
+            ),
+            onset=onset
+        )
+    
+    def _decode_fractional_duration(
+        self,
+        type_duration: TypeDuration,
+        duration_dots: int,
+        time_modification: Optional[Fraction]
+    ) -> Fraction:
+        # first get the number of quarter notes
+        fractional_duration = type_duration.to_quarter_multiple()
+
+        # now apply duration dots
+        dot_duration = fractional_duration / 2
+        for _ in range(duration_dots):
+            fractional_duration += dot_duration
+            dot_duration /= 2
+        
+        # finally apply time modification
+        if time_modification is not None:
+            fractional_duration *= time_modification
+        
+        return fractional_duration
+
+    def _load_attributes(self, attributes_element: ET.Element):
+        # the order of elements is well defined
+        # https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/attributes/
+        assert attributes_element.tag == "attributes"
+
+        assert self._part_state is not None, \
+            "Part state must be initialized before loading <attributes>"
+        assert self._measure_state is not None, \
+            "Measure state must be initialized before loading <attributes>"
+
+        # divisions:
+        divisions_element = attributes_element.find("divisions")
+        if divisions_element is not None:
+            self._load_divisions(divisions_element)
+        
+        # key signature (process even if missing due to re-prints)
+        # key_element = attributes_element.find("key")
+        # self.process_key_signature(key_element)
+
+        # time signature
+        time_element = attributes_element.find("time")
+        if time_element is not None:
+            self._load_time_signature(time_element)
+        
+        # staves
+        # staves_element = attributes_element.find("staves")
+        # if staves_element is not None:
+        #     self._staves = int(staves_element.text)
+
+        # clef (process even if missing due to re-prints)
+        # clef_elements = attributes_element.findall("clef")
+        # self.process_clefs(clef_elements)
+    
+    def _load_divisions(self, divisions_element: ET.Element):
+        assert divisions_element.tag == "divisions"
+
+        self._part_state.divisions = int(divisions_element.text)
+
+        assert self._part_state.divisions > 0, \
+            "<divisions> should be a positive number"
+    
+    def _load_time_signature(self, time_element: ET.Element):
+        assert time_element.tag == "time"
+        
+        # parse XML tree
+        beats_element = time_element.find("beats")
+        assert beats_element is not None, \
+            "<beats> must be present in <time> element"
+        beat_type_element = time_element.find("beat-type")
+        assert beat_type_element is not None, \
+            "<beat-type> must be present in <time> element"
+        
+        # extract time signature values
+        beats_per_measure = int(beats_element.text) # typically 4, or 3
+        assert beats_per_measure > 0
+        beat_type = int(beat_type_element.text) # typically 4
+        assert beat_type > 0
+
+        # compute
+        beat_fractional_duration = Fraction(1, beat_type) / Fraction(1, 4)
+        measure_fractional_duration = beat_fractional_duration * beats_per_measure
+
+        # modify part state
+        self._part_state.beats_per_measure = beats_per_measure
+        self._part_state.beat_type = beat_type
+        self._part_state.beat_fractional_duration = beat_fractional_duration
+        self._part_state.measure_fractional_duration = measure_fractional_duration
+    
+    def _load_backup(self, backup_element: ET.Element):
+        assert backup_element.tag == "backup"
+
+        # get the duration
+        backup_duration = int(backup_element.find("duration").text)
+        assert backup_duration > 0
+
+        # number of quarter notes
+        fractional_duration = Fraction(
+            backup_duration,
+            self._part_state.divisions
+        )
+
+        # modify measure state
+        self._measure_state.seek_backup(fractional_duration)
+    
+    def _load_forward(self, forward_element: ET.Element):
+        assert forward_element.tag == "forward"
+
+        # get the duration
+        forward_duration = int(forward_element.find("duration").text)
+        assert forward_duration > 0
+
+        # number of quarter notes
+        fractional_duration = Fraction(
+            forward_duration,
+            self._part_state.divisions
+        )
+
+        # modify measure state
+        self._measure_state.seek_forward(fractional_duration)
