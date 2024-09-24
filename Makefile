@@ -9,4 +9,4 @@ demo-serve:
 	.venv/bin/voila --no-browser --port 8866 jupyter/
 
 clear-jupyter-outputs:
-	.venv/bin/jupyter nbconvert --clear-output --inplace jupyter/*.ipynb jupyter/*/*.ipynb
+	.venv/bin/jupyter nbconvert --clear-output --inplace jupyter/*.ipynb jupyter/*/*.ipynb jupyter/*/*/*.ipynb jupyter/*/*/*/*.ipynb
