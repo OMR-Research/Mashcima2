@@ -65,7 +65,7 @@ class SceneObject:
         super().__setattr__(name, value)
     
     def _destroy_outlinks_for(self, name: str):
-        for link in self.outlinks:
+        for link in list(self.outlinks):
             if link.name == name:
                 link.detach()
     

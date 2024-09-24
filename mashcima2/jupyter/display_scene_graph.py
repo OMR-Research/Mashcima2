@@ -111,12 +111,12 @@ def display_scene_graph(scene: Scene):
     IPython.display.display(out)
 
 
-def display_scene_object_graph(obj: SceneObject):
+def display_scene_object_graph(obj: SceneObject, recurse_via_inlinks=True):
     """Displays an interactive scene graph for a single scene object"""
     # isolate the given object from the graph by making a copy
     # and removing all inlinks
     obj_clone = deepcopy(obj)
     scene = Scene()
     scene.objects.clear() # remove the root affine space
-    scene.add(obj_clone, recurse_via_inlinks=False)
+    scene.add(obj_clone, recurse_via_inlinks=recurse_via_inlinks)
     display_scene_graph(scene)

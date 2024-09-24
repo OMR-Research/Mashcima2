@@ -1,7 +1,7 @@
 from ...AssetBundle import AssetBundle
 from ...datasets.MuscimaPP import MuscimaPP
 from .MppPage import MppPage
-from .get_symbols import get_whole_notes, get_black_noteheads
+from .get_symbols import get_black_noteheads
 from .SymbolRepository import SymbolRepository
 from pathlib import Path
 import pickle
@@ -27,23 +27,17 @@ class MuscimaPPGlyphs(AssetBundle):
             page = MppPage.load(document_path)
 
             black_noteheads = get_black_noteheads(page)
-            whole_notes = get_whole_notes(page)
             
             repository.black_noteheads += black_noteheads
-            repository.whole_notes += whole_notes
 
             if len(black_noteheads) > 0:
                 break
         
-        # TODO: store all glyphs in a pickle that can then be loaded
+        # store all glyphs in a pickle that can then be loaded
         # on-request by a MPP glyph synthesizer
-
         with open(self.symbol_repository_path, "wb") as file:
             pickle.dump(repository, file)
             print("Writing...", self.symbol_repository_path)
-        
-        # TODO: DEBUG
-        self.repository = repository
     
     def load_symbol_repository(self) -> SymbolRepository:
         with open(self.symbol_repository_path, "rb") as file:

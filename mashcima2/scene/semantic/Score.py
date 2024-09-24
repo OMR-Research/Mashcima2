@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from ..SceneObject import SceneObject
 from typing import List
 from .Part import Part
+from .ScoreMeasure import ScoreMeasure
 
 
 @dataclass
@@ -15,6 +16,17 @@ class Score(SceneObject):
     def staves_per_system(self) -> int:
         """How many staves does a single system have"""
         return sum(p.staff_count for p in self.parts)
+    
+    def get_score_measure(self, measure_index: int) -> ScoreMeasure:
+        """
+        Returns a view of the score from an all-parts temporal perspective.
+        This view is constructed each time you call this method and is not
+        stored in the data model.
+        """
+        return ScoreMeasure.from_part_measures([
+            self.parts[i].measures[measure_index]
+            for i in range(len(self.parts))
+        ])
 
     def validate(self):
         "Runs various consistency validation checks on the entire score"

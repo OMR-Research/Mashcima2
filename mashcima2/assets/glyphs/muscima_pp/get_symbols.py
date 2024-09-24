@@ -1,10 +1,12 @@
 from muscima.io import CropObject
 from typing import List
 from .MppPage import MppPage
-from .MppGlyph import MppGlyph
+from .MppGlyphMetadata import MppGlyphMetadata
 from mashcima2.scene.Sprite import Sprite
 from mashcima2.geometry.Point import Point
 from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
+from mashcima2.scene.visual.Glyph import Glyph
+from mashcima2.scene.visual.Notehead import Notehead
 import numpy as np
 
 
@@ -23,55 +25,25 @@ def mpp_mask_to_sprite_bitmap(mask: np.ndarray):
     return bitmap
 
 
-def get_black_noteheads(page: MppPage) -> List[MppGlyph]:
-    crop_objects = [
+def get_black_noteheads(page: MppPage) -> List[Notehead]:
+    crop_objects: List[CropObject] = [
         o for o in page.crop_objects
         if o.clsname == "notehead-full"
         and not page.has_outlink_to(o, "ledger_line")
     ]
 
-    glyphs = []
+    noteheads: List[Notehead] = []
     for o in crop_objects:
-        glyph = MppGlyph(
-            mpp_writer=page.mpp_writer,
-            mpp_piece=page.mpp_piece,
-            assigned_smufl_glyph_class=SmuflGlyphClass.noteheadBlack
-        )
-        glyph.sprites = [
+        notehead = Notehead(assigned_glyph_class=SmuflGlyphClass.noteheadBlack)
+        MppGlyphMetadata.stamp_glyph(notehead, page)
+        notehead.sprites = [
             Sprite(
-                space=glyph.space,
+                space=notehead.space,
                 bitmap=mpp_mask_to_sprite_bitmap(o.mask),
                 bitmap_origin=Point(0.5, 0.5),
                 dpi=MUSCIMA_PP_DPI
             )
         ]
-        glyphs.append(glyph)
+        noteheads.append(notehead)
 
-    return glyphs
-
-
-def get_whole_notes(page: MppPage) -> List[MppGlyph]:
-    crop_objects = [
-        o for o in page.crop_objects
-        if o.clsname == "notehead-empty"
-        and not page.has_outlink_to(o, "ledger_line")
-    ]
-
-    glyphs = []
-    for o in crop_objects:
-        glyph = MppGlyph(
-            mpp_writer=page.mpp_writer,
-            mpp_piece=page.mpp_piece,
-            assigned_smufl_glyph_class=SmuflGlyphClass.noteWhole
-        )
-        glyph.sprites = [
-            Sprite(
-                space=glyph.space,
-                bitmap=mpp_mask_to_sprite_bitmap(o.mask),
-                bitmap_origin=Point(0.5, 0.5),
-                dpi=MUSCIMA_PP_DPI
-            )
-        ]
-        glyphs.append(glyph)
-
-    return glyphs
+    return noteheads

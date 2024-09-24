@@ -1,15 +1,11 @@
 from .Model import Model
 from ..scene.ViewBox import ViewBox
-from ..scene.Sprite import Sprite
 from ..geometry.Rectangle import Rectangle
 from ..geometry.Vector2 import Vector2
-from ..geometry.Transform import Transform
 from ..loading.MusicXmlLoader import MusicXmlLoader
 from ..synthesis.page.NaiveStafflinesSynthesizer \
     import NaiveStafflinesSynthesizer
 from ..synthesis.page.StafflinesSynthesizer import StafflinesSynthesizer
-from ..synthesis.layout.Mashcima1LayoutSynthesizer \
-    import Mashcima1LayoutSynthesizer
 from ..synthesis.layout.ColumnLayoutSynthesizer \
     import ColumnLayoutSynthesizer
 from ..rendering.BitmapRenderer import BitmapRenderer

@@ -6,6 +6,7 @@ from .Durable import Durable
 from .Event import Event
 from .Staff import Staff
 from typing import List
+from nameof import nameof
 
 
 @dataclass
@@ -17,6 +18,20 @@ class Measure(SceneObject):
 
     staves: List[Staff] = field(default_factory=list)
     """Links to all staves within this measure"""
+
+    @staticmethod
+    def of_staff(staff: Staff) -> Optional["Measure"]:
+        """Returns the measure corresponding to a given staff"""
+        links = [
+            l for l in staff.inlinks
+            if isinstance(l.source, Measure) and l.name == nameof(l.source.staves)
+        ]
+        if len(links) == 0:
+            return None
+        elif len(links) == 1:
+            return links[0].source
+        else:
+            raise Exception("There is more than one measure for the staff")
 
     def add_durable(
         self,

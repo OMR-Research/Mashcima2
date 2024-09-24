@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
-from .MppGlyph import MppGlyph
+from mashcima2.scene.visual.Notehead import Notehead
 
 
 @dataclass
@@ -12,6 +12,4 @@ class SymbolRepository:
 
     # TODO: this needs to be figured out and defined
 
-    whole_notes: List[MppGlyph] = field(default_factory=list)
-
-    black_noteheads: List[MppGlyph] = field(default_factory=list)
+    black_noteheads: List[Notehead] = field(default_factory=list)
