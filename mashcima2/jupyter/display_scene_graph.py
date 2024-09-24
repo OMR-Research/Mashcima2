@@ -116,9 +116,7 @@ def display_scene_object_graph(obj: SceneObject):
     # isolate the given object from the graph by making a copy
     # and removing all inlinks
     obj_clone = deepcopy(obj)
-    for link in obj_clone.inlinks:
-        link.detach()
-    
     scene = Scene()
-    scene.add(obj_clone)
+    scene.objects.clear() # remove the root affine space
+    scene.add(obj_clone, recurse_via_inlinks=False)
     display_scene_graph(scene)

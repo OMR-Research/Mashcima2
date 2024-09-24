@@ -24,17 +24,37 @@ class Scene:
     def has(self, obj: SceneObject) -> bool:
         return id(obj) in self.objects
 
-    def add(self, obj: SceneObject, skip_if_added=True):
+    def add(
+        self,
+        obj: SceneObject,
+        skip_if_added=True,
+        recurse_via_inlinks=True,
+        recurse_via_outlinks=True
+    ):
         if skip_if_added and self.has(obj):
             return
 
         self.objects[id(obj)] = obj
+        
+        # recursion down
+        if recurse_via_outlinks:
+            for link in obj.outlinks:
+                self.add(
+                    link.target,
+                    skip_if_added=True,
+                    recurse_via_inlinks=recurse_via_inlinks,
+                    recurse_via_outlinks=recurse_via_outlinks
+                )
 
-        # recursion
-        for link in obj.inlinks:
-            self.add(link.source)
-        for link in obj.outlinks:
-            self.add(link.target)
+        # recursion up
+        if recurse_via_inlinks:
+            for link in obj.inlinks:
+                self.add(
+                    link.source,
+                    skip_if_added=True,
+                    recurse_via_inlinks=recurse_via_inlinks,
+                    recurse_via_outlinks=recurse_via_outlinks
+                )
     
     def add_closure(self):
         """Add all scene objects linked from already added scene objects"""

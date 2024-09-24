@@ -20,6 +20,9 @@ class _PartState:
     part_id: str
     "MusicXML ID of the currently parsed part, used for error localization"
 
+    part: Part
+    "The part that is being constructed as it's being parsed"
+
     measure_number: Optional[str] = None
     "Currently parsed measure number, or None if it was not yet defined/parsed"
 
@@ -148,19 +151,21 @@ class MusicXmlLoader:
         assert score_part_element.attrib["id"] == part_id
         assert part_element.attrib["id"] == part_id
 
-        # TODO: should split to staves according to linebreaks
+        # TODO: should parse linebreaks and keep them in the part/score somehow
 
-        self._part_state = _PartState(part_id=part_id)
-
-        measures: List[Measure] = []
+        self._part_state = _PartState(
+            part_id=part_id,
+            part=Part()
+        )
 
         for measure_element in part_element:
             measure = self._load_measure(measure_element)
-            measures.append(measure)
+            self._part_state.part.append_measure(measure)
         
+        part = self._part_state.part
         self._part_state = None
         
-        return Part(measures=measures)
+        return part
     
     def _load_measure(self, measure_element: ET.Element) -> Measure:
         assert measure_element.tag == "measure"
@@ -207,7 +212,7 @@ class MusicXmlLoader:
                     is_grace_slash = True
             return is_grace_note, is_grace_slash
         
-        # [chord]
+        # <chord>
         def _chord():
             chord_element = note_element.find("chord")
             is_chord = chord_element is not None
@@ -267,7 +272,18 @@ class MusicXmlLoader:
         
         # TODO: <accidental>
         # TODO: <stem>
-        # TODO: <staff>
+
+        # <staff>
+        def _staff() -> int:
+            staff_element = note_element.find("staff")
+            if staff_element is None:
+                return 1
+            staff = int(staff_element.text)
+            assert staff >= 1, "Staff number must be 1 or more"
+            assert staff <= self._part_state.part.staff_count, \
+                "Staff number must not exceed the defined staff count"
+            return staff
+
         # TODO: <beam>
         # TODO: <tied>
         # TODO: <tuplet>
@@ -281,6 +297,7 @@ class MusicXmlLoader:
         type_duration = _type(is_measure_rest) # None for measure rests
         time_modification = _time_modification()
         duration_dots = _dot()
+        staff_number = _staff()
         
         fractional_duration = self._part_state.measure_fractional_duration \
             if is_measure_rest \
@@ -311,7 +328,8 @@ class MusicXmlLoader:
                 durable=MeasureRest(
                     fractional_duration=fractional_duration
                 ),
-                onset=onset
+                onset=onset,
+                staff_number=staff_number
             )
             return
         
@@ -323,7 +341,8 @@ class MusicXmlLoader:
                     duration_dots=duration_dots,
                     fractional_duration=fractional_duration,
                 ),
-                onset=onset
+                onset=onset,
+                staff_number=staff_number
             )
             return
         
@@ -335,7 +354,8 @@ class MusicXmlLoader:
                 duration_dots=duration_dots,
                 fractional_duration=fractional_duration,
             ),
-            onset=onset
+            onset=onset,
+            staff_number=staff_number
         )
     
     def _decode_fractional_duration(
@@ -384,9 +404,9 @@ class MusicXmlLoader:
             self._load_time_signature(time_element)
         
         # staves
-        # staves_element = attributes_element.find("staves")
-        # if staves_element is not None:
-        #     self._staves = int(staves_element.text)
+        staves_element = attributes_element.find("staves")
+        if staves_element is not None:
+            self._part_state.part.staff_count = int(staves_element.text)
 
         # clef (process even if missing due to re-prints)
         # clef_elements = attributes_element.findall("clef")

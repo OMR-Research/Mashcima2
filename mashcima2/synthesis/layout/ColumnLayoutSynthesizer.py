@@ -1,4 +1,5 @@
 from mashcima2.scene.visual.Stafflines import Stafflines
+from mashcima2.scene.visual.Notehead import Notehead
 from mashcima2.scene.semantic.Staff import Staff
 from mashcima2.scene.semantic.Note import Note
 from mashcima2.scene.semantic.Rest import Rest
@@ -11,7 +12,38 @@ from mashcima2.geometry.Transform import Transform
 from mashcima2.geometry.Rectangle import Rectangle
 from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
+from mashcima2.scene.visual.Glyph import Glyph
 from typing import List
+import abc
+
+
+class _Column(abc.ABC):
+    def __init__(self):
+        self.glyphs: List[Glyph] = []
+
+        self.time_position = 0
+        "Where on the staff (staves) is this column placed"
+
+    @abc.abstractmethod
+    def position_glyphs(self):
+        """Positions glyphs on staves according to the column's time position"""
+        raise NotImplementedError
+
+
+class _NotesColumn(_Column):
+    def __init__(self):
+        super().__init__()
+        self.noteheads: List[Glyph] = []
+    
+    def add_notehead(self, notehead: Glyph):
+        self.noteheads.append(notehead)
+
+    def position_glyphs(self):
+        pass
+
+
+class _ClefsColumn(_Column):
+    pass
 
 
 # TODO: define a layout synthesizer interface and inherit
@@ -44,12 +76,15 @@ class ColumnLayoutSynthesizer:
     
     def synthesize_system(
         self,
-        staves: List[Stafflines]
+        staves: List[Stafflines],
+        score: Score,
+        start_on_measure: int
     ) -> System:
         """Synthesizes a single system of music onto the provided staves"""
         system = System()
 
-        # TODO: assert the stave count matches staves in the music
+        assert len(staves) == score.staves_per_system, \
+            "Given staves do not match the required number of staves per system"
 
         # TODO: dummy notehead synthesis
         for i in range(10):

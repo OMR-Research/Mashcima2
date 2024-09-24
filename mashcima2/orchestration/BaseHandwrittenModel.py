@@ -51,8 +51,8 @@ class BaseHandwrittenModel(Model):
         self.scene.add(ViewBox(Rectangle(0, 0, 210, 297)))
 
         # load the symbolic part
-        staff = MusicXmlLoader().load_file(annotation_file_path)
-        self.scene.add(staff)
+        score = MusicXmlLoader().load_file(annotation_file_path)
+        self.scene.add(score)
 
         # synthesize stafflines
         stafflines_synthesizer = self.container.resolve(StafflinesSynthesizer)
@@ -67,7 +67,9 @@ class BaseHandwrittenModel(Model):
         layout_synthesizer = self.container.resolve(ColumnLayoutSynthesizer)
         # layout_synthesizer.synthesize(stafflines, staff)
         layout_synthesizer.synthesize_system(
-            staves=staves,
+            staves=staves[0:score.staves_per_system],
+            score=score,
+            start_on_measure=0
         )
         
         # add objects to scene that are transitively linked from objects

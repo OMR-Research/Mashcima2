@@ -11,9 +11,17 @@ class Score(SceneObject):
     parts: List[Part]
     "List of parts that this score consists of"
 
+    @property
+    def staves_per_system(self) -> int:
+        """How many staves does a single system have"""
+        return sum(p.staff_count for p in self.parts)
+
     def validate(self):
         "Runs various consistency validation checks on the entire score"
         self._validate_consistent_measure_count()
+        
+        for p in self.parts:
+            p.validate()
     
     def _validate_consistent_measure_count(self):
         """All parts must have the same number of measures"""
