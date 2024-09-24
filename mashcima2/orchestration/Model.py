@@ -2,6 +2,7 @@ import abc
 from ..scene.Scene import Scene
 from typing import Optional
 from .Container import Container
+from mashcima2.assets.AssetRepository import AssetRepository
 
 
 class Model(abc.ABC):
@@ -16,6 +17,10 @@ class Model(abc.ABC):
     def __init__(self):
         self.container = Container()
         "IoC container with services used by the synthesis pipeline"
+
+        # register the default asset repository into the container,
+        # so that synthesizers can resolve asset bundles
+        self.container.instance(AssetRepository, AssetRepository.default())
 
         self.scene: Optional[Scene] = None
         "The scene synthesized during the last invocation of this model"

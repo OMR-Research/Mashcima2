@@ -10,31 +10,29 @@ from ..synthesis.page.NaiveStafflinesSynthesizer \
 from ..synthesis.page.StafflinesSynthesizer import StafflinesSynthesizer
 from ..synthesis.layout.Mashcima1LayoutSynthesizer \
     import Mashcima1LayoutSynthesizer
+from ..synthesis.layout.ColumnLayoutSynthesizer \
+    import ColumnLayoutSynthesizer
 from ..rendering.BitmapRenderer import BitmapRenderer
 from ..synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from ..synthesis.glyph.MuscimaPPGlyphSynthesizer import MuscimaPPGlyphSynthesizer
 from mashcima2.assets.datasets.MuscimaPP import MuscimaPP
 from mashcima2.assets.AssetRepository import AssetRepository
+from mashcima2.scene.visual.Stafflines import Stafflines
 import numpy as np
+from typing import List
 
 
-class Mayer2021Model(Model):
+class BaseHandwrittenModel(Model):
     """
-    Synthesizer that uses the original Mashcima 1 algorithm from:
-
-    > Jiří Mayer and Pavel Pecina. Synthesizing Training Data for Handwritten
-    > Music Recognition. 16th International Conference on Document Analysis
-    > and Recognition, ICDAR 2021. Lausanne, September 8-10, pp. 626-641, 2021.
+    Model that serves as the basic handwritten music synthesizer.
+    The whole framework is being developed around this model currently
+    and its name might change in the future. It aims to be like Mashcima1
+    with the additions of using MXL input, polyphony and postprocessing.
     """
     def __init__(self):
         super().__init__()
 
-        # TODO: this should be done by the glyph synthesizer, not by us
-        assets = AssetRepository.default()
-        muscima_pp = assets.resolve_bundle(MuscimaPP)
-
-        self.container.instance(MuscimaPP, muscima_pp)
-        self.container.type(Mashcima1LayoutSynthesizer)
+        self.container.type(ColumnLayoutSynthesizer)
         self.container.interface(
             StafflinesSynthesizer,
             NaiveStafflinesSynthesizer
@@ -49,16 +47,8 @@ class Mayer2021Model(Model):
 
     def call(self, annotation_file_path: str):
 
-        # TODO: move sub-component initialization into the IoC configuration
-        # and then resolve them from the IoC container here
-        
         # A4 paper portrait, mm
         self.scene.add(ViewBox(Rectangle(0, 0, 210, 297)))
-
-        # create two debug boxes on the page
-        img1 = Sprite.debug_box(self.scene.space, Rectangle(10, 10, 100, 20))
-        img2 = Sprite.debug_box(self.scene.space, Rectangle(50, 25, 100, 20))
-        img2.transform = Transform.rotateDegCC(5).then(img2.transform)
 
         # load the symbolic part
         staff = MusicXmlLoader().load_file(annotation_file_path)
@@ -66,18 +56,31 @@ class Mayer2021Model(Model):
 
         # synthesize stafflines
         stafflines_synthesizer = self.container.resolve(StafflinesSynthesizer)
-        stafflines = stafflines_synthesizer.synthesize(
-            self.scene.space, Vector2(10, 100), 100
+        staves: List[Stafflines] = []
+        for i in range(6):
+            stafflines = stafflines_synthesizer.synthesize(
+                self.scene.space, Vector2(10, 30 + i * 24), 180
+            )
+            staves.append(stafflines)
+        
+        # synthesize layout
+        layout_synthesizer = self.container.resolve(ColumnLayoutSynthesizer)
+        # layout_synthesizer.synthesize(stafflines, staff)
+        layout_synthesizer.synthesize_system(
+            staves=staves,
         )
-        layout_synthesizer = self.container.resolve(Mashcima1LayoutSynthesizer)
-        layout_synthesizer.synthesize(stafflines, staff)
         
         # add objects to scene that are transitively linked from objects
         # already in scene
         self.scene.add_closure()
 
         # render PNG
-        renderer = BitmapRenderer()
+        renderer = BitmapRenderer(dpi=150) # TODO: DPI reduced for speed...
         bitmap = renderer.render(self.scene)
+
+        # add white background
+        # TODO: synthesize background
+        mask = bitmap[:, :, 3] == 0
+        bitmap[mask, :] = 255
 
         return bitmap

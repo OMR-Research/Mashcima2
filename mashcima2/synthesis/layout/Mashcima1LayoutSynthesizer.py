@@ -32,6 +32,7 @@ def dummy_half_note_synthesizer(
 # TODO: define a layout synthesizer interface and inherit
 # IN -> semantic scene object graph
 # OUT -> visual scene object graph
+# TODO: get rid of this, the column layout synth is a superset of this
 class Mashcima1LayoutSynthesizer:
     def __init__(self, glyph_synthesizer: GlyphSynthesizer):
         self.glyph_synthesizer = glyph_synthesizer

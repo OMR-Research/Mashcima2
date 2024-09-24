@@ -1,35 +1,31 @@
 from typing import Set
 from .GlyphSynthesizer import GlyphSynthesizer
 from mashcima2.scene.visual.Glyph import Glyph
-from mashcima2.scene.visual.Notehead import Notehead
-from mashcima2.scene.Sprite import Sprite
-from mashcima2.geometry.Transform import Transform
-from mashcima2.geometry.Rectangle import Rectangle
-from mashcima2.scene.AffineSpace import AffineSpace
-from mashcima2.assets.datasets.MuscimaPP import MuscimaPP
+from mashcima2.assets.AssetRepository import AssetRepository
+from mashcima2.assets.glyphs.muscima_pp.MuscimaPPGlyphs import MuscimaPPGlyphs
 from .SmuflGlyphClass import SmuflGlyphClass
+import random
+import copy
 
 
 class MuscimaPPGlyphSynthesizer(GlyphSynthesizer):
     """
     Synthesizes glyphs by sampling from the MUSCIMA++ dataset
     """
-    def __init__(self, muscima_pp: MuscimaPP):
-        self.muscima_pp = muscima_pp
+    def __init__(self, assets: AssetRepository):
+        bundle = assets.resolve_bundle(MuscimaPPGlyphs)
+        self.symbol_repository = bundle.load_symbol_repository()
     
     def synthesize(self, glyph_class: str) -> Glyph:
-        local_space = AffineSpace()
-        notehead = Notehead(
-            space=local_space,
-            sprites=[
-                # dummy notehead
-                Sprite.debug_box(local_space, Rectangle(-1, -1, 2, 2))
-            ]
+        assert glyph_class == SmuflGlyphClass.noteheadBlack
+
+        notehead = random.choice(
+            self.symbol_repository.black_noteheads
         )
-        return notehead
+        return copy.deepcopy(notehead)
     
     @property
     def supported_glyphs(self) -> Set[str]:
         return {
-            SmuflGlyphClass.noteWhole
+            SmuflGlyphClass.noteheadBlack
         }
