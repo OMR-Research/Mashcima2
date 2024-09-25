@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
+from mashcima2.scene.visual.Glyph import Glyph
 from mashcima2.scene.visual.Notehead import Notehead
 
 
@@ -11,3 +12,4 @@ class SymbolRepository:
     """
     empty_noteheads: List[Notehead] = field(default_factory=list)
     full_noteheads: List[Notehead] = field(default_factory=list)
+    normal_barlines: List[Glyph] = field(default_factory=list)

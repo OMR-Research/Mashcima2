@@ -1,7 +1,10 @@
 from ...AssetBundle import AssetBundle
 from ...datasets.MuscimaPP import MuscimaPP
 from .MppPage import MppPage
-from .get_symbols import get_full_noteheads, get_empty_noteheads
+from .get_symbols import \
+    get_full_noteheads, \
+    get_empty_noteheads, \
+    get_normal_barlines
 from .SymbolRepository import SymbolRepository
 from pathlib import Path
 import pickle
@@ -30,9 +33,11 @@ class MuscimaPPGlyphs(AssetBundle):
 
             full_noteheads = get_full_noteheads(page)
             empty_noteheads = get_empty_noteheads(page)
-            
+            normal_barlines = get_normal_barlines(page)
+
             repository.full_noteheads += full_noteheads
             repository.empty_noteheads += empty_noteheads
+            repository.normal_barlines += normal_barlines
 
             # TODO: this is dummy so that it does not take forever to regenerate
             if len(empty_noteheads) > 0:

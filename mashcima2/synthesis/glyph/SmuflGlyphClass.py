@@ -7,7 +7,11 @@ class SmuflGlyphClass(str, Enum):
     Enum that represents glyphs from the SMuFL specification.
     https://www.w3.org/2019/03/smufl13/
     """
-    
+
+    # Barlines
+    # https://w3c.github.io/smufl/latest/tables/barlines.html
+    barlineSingle = "smufl::barlineSingle"
+
     # Noteheads
     # https://w3c.github.io/smufl/latest/tables/noteheads.html
     noteheadDoubleWhole = "smufl::noteheadDoubleWhole"

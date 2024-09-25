@@ -47,6 +47,9 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer):
         if issubclass(glyph_type, Notehead):
             return self._sythesize_notehead(glyph_class)
         
+        if glyph_class == SmuflGlyphClass.barlineSingle:
+            return self.rng.choice(self.symbol_repository.normal_barlines)
+        
         raise Exception("Unsupported glyph class: " + glyph_class)
 
     def _sythesize_notehead(self, glyph_class: str) -> Notehead:

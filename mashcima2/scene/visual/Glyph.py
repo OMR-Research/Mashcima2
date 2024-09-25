@@ -1,13 +1,12 @@
 from dataclasses import dataclass, field
 from ..SceneObject import SceneObject
 from ..Sprite import Sprite
-import abc
 from ..AffineSpace import AffineSpace
 from typing import List
 
 
 @dataclass
-class Glyph(SceneObject, metaclass=abc.ABCMeta):
+class Glyph(SceneObject):
     """
     A glyph is a visual unit of the notation. It can be detected, segmented,
     classified.

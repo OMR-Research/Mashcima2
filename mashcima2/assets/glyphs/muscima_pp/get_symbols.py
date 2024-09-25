@@ -12,10 +12,11 @@ import numpy as np
 
 T = TypeVar("T", bound=Glyph)
 
-
 # source:
 # https://pages.cvc.uab.es/cvcmuscima/index_database.html
 MUSCIMA_PP_DPI = 300
+
+TALL_BARLINE_THRESHOLD_PX = 150
 
 
 def _mpp_mask_to_sprite_bitmap(mask: np.ndarray):
@@ -54,6 +55,11 @@ def _crop_objects_to_single_sprite_glyphs(
     return glyphs
 
 
+################################################
+# Code that actually extracts required symbols #
+################################################
+
+
 def get_full_noteheads(page: MppPage) -> List[Notehead]:
     return _crop_objects_to_single_sprite_glyphs(
         crop_objects=[
@@ -77,4 +83,17 @@ def get_empty_noteheads(page: MppPage) -> List[Notehead]:
         page=page,
         glyph_type=Notehead,
         glyph_class=MppGlyphClass.noteheadEmpty
+    )
+
+
+def get_normal_barlines(page: MppPage) -> List[Glyph]:
+    return _crop_objects_to_single_sprite_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname in ["thin_barline"]
+            and o.height < TALL_BARLINE_THRESHOLD_PX
+        ],
+        page=page,
+        glyph_type=Glyph,
+        glyph_class=MppGlyphClass.thinBarline
     )

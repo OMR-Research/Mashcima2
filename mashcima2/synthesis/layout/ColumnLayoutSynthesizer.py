@@ -56,6 +56,12 @@ class _Column(abc.ABC):
         self.width = 0
         self.left_width = 0
         self.right_width = 0
+
+        self.__post_init__()
+    
+    def __post_init__(self):
+        # can be overriden in child classes
+        pass
     
     def add_glyph(self, glyph: Glyph, stafflines: Stafflines):
         """Adds a glyph into the column"""
@@ -140,8 +146,7 @@ class _Column(abc.ABC):
 
 
 class _NotesColumn(_Column):
-    def __init__(self, staves: List[Stafflines], rng_seed: float):
-        super().__init__(staves, rng_seed)
+    def __post_init__(self):
         self.noteheads: List[Notehead] = []
     
     def add_notehead(self, notehead: Notehead):
@@ -151,10 +156,21 @@ class _NotesColumn(_Column):
     def _position_glyphs(self):
         for i, n in enumerate(self.noteheads):
             sl = n.stafflines
-            n.space.parent_space = sl.space
             n.space.transform = sl.staff_coordinate_system.get_transform(
                 pitch_position=i*2, # TODO: pitch position
                 time_position=self.time_position + self.rng.random() * 2 - 1
+            )
+
+
+class _BarlinesColumn(_Column):
+    def _position_glyphs(self):
+        for glyph_on_stafflines in self.glyphs_on_stafflines:
+            barline = glyph_on_stafflines.glyph
+            sl = glyph_on_stafflines.stafflines
+
+            barline.space.transform = sl.staff_coordinate_system.get_transform(
+                pitch_position=0, # centered on the staff
+                time_position=self.time_position
             )
 
 
@@ -216,6 +232,12 @@ class ColumnLayoutSynthesizer:
                 column.position_glyphs()
                 total_width += column.width
                 columns.append(column)
+            
+            # column for the barlines
+            column = self.synthesize_barlines(staves, score)
+            column.position_glyphs()
+            total_width += column.width
+            columns.append(column)
 
         # place columns side-by-side with fixed spacing
         SPACING = 3
@@ -229,8 +251,8 @@ class ColumnLayoutSynthesizer:
         # TODO: ...
 
         # TODO: DEBUG ONLY: place debug rectangles around columns
-        for column in columns:
-            column.place_debug_boxes()
+        # for column in columns:
+        #     column.place_debug_boxes()
 
         return system
 
@@ -285,3 +307,20 @@ class ColumnLayoutSynthesizer:
         notehead.notes = [note]
         notehead.stafflines = stafflines
         return notehead
+
+    def synthesize_barlines(
+        self,
+        staves: List[Stafflines],
+        score: Score
+    ) -> _Column:
+        column = _BarlinesColumn(staves, self.rng.random())
+
+        for stafflines in staves:
+            barline = self.glyph_synthesizer.synthesize_glyph(
+                Glyph,
+                SmuflGlyphClass.barlineSingle
+            )
+            barline.space.parent_space = stafflines.space
+            column.add_glyph(barline, stafflines)
+
+        return column
