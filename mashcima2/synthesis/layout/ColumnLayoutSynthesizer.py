@@ -13,64 +13,149 @@ from mashcima2.scene.visual.HalfNote import HalfNote
 from mashcima2.scene.visual.System import System
 from mashcima2.geometry.Transform import Transform
 from mashcima2.geometry.Rectangle import Rectangle
+from mashcima2.geometry.Point import Point
+from mashcima2.geometry.Vector2 import Vector2
 from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from mashcima2.scene.visual.Glyph import Glyph
+from mashcima2.rendering.traverse_sprites import traverse_sprites
 from typing import List
 import abc
+import random
+from dataclasses import dataclass
+
+
+@dataclass
+class _GlyphOnStafflines:
+    glyph: Glyph
+    stafflines: Stafflines
+
+    def __post_init__(self):
+        assert self.glyph.space.parent_space is self.stafflines.space, \
+            "The given glyph must be on the given stafflines"
 
 
 class _Column(abc.ABC):
-    def __init__(self):
-        self.glyphs: List[Glyph] = []
+    def __init__(self, staves: List[Stafflines], rng_seed: float):
+        self.staves = staves
+        "Reference to the list of stafflines we render onto"
+        
+        self.glyphs_on_stafflines: List[_GlyphOnStafflines] = []
+        "List of all glyphs within this column"
 
         self.time_position = 0
         "Where on the staff (staves) is this column placed"
-    
-    @property
-    @abc.abstractmethod
-    def width(self) -> float:
-        raise NotImplementedError
-    
-    @property
-    @abc.abstractmethod
-    def left_width(self) -> float:
-        raise NotImplementedError
 
-    @abc.abstractmethod
+        self.rng_seed = rng_seed
+        "Seed for the local RNG used for glyph positioning"
+
+        self.rng = random.Random(self.rng_seed)
+        "The RNG that should be used for randomizing glyph positioning"
+
+        # temporal dimensions of the column, must be manually recalculated
+        self.width = 0
+        self.left_width = 0
+        self.right_width = 0
+    
+    def add_glyph(self, glyph: Glyph, stafflines: Stafflines):
+        """Adds a glyph into the column"""
+        self.glyphs_on_stafflines.append(
+            _GlyphOnStafflines(glyph=glyph, stafflines=stafflines)
+        )
+    
+    def recalculate_dimensions(self):
+        """Updates all the width values"""
+        # reset all
+        self.width = 0
+        self.left_width = 0
+        self.right_width = 0
+
+        # map sprite corners to the stafflines space
+        # relative to its time position
+        points: List[Vector2] = []
+        for glyph_on_stafflines in self.glyphs_on_stafflines:
+            glyph = glyph_on_stafflines.glyph
+            stafflines = glyph_on_stafflines.stafflines
+            column_origin = stafflines.staff_coordinate_system.get_transform(
+                0,
+                self.time_position
+            ).apply_to(Vector2(0, 0))
+            for (sprite, transform) in traverse_sprites(
+                glyph.space,
+                include_pixels_transform=True,
+                include_sprite_transform=True,
+                include_root_space_transform=True # all the way to staff space
+            ):
+                corners = [
+                    transform.apply_to(Vector2(0, 0)),
+                    transform.apply_to(Vector2(sprite.pixel_width, 0)),
+                    transform.apply_to(Vector2(0, sprite.pixel_height)),
+                    transform.apply_to(
+                        Vector2(sprite.pixel_width, sprite.pixel_height)
+                    )
+                ]
+                corners = [p - column_origin for p in corners]
+                points += corners
+
+        # recalculate widths
+        if len(points) > 0:
+            self.left_width = -min(p.x for p in points)
+            self.right_width = max(p.x for p in points)
+            self.width = self.left_width + self.right_width
+
     def position_glyphs(self):
         """Positions glyphs on staves according to the column's time position"""
+        # reset RNG before any positioning
+        self.rng = random.Random(self.rng_seed)
+        self._position_glyphs()
+        self.recalculate_dimensions()
+
+    @abc.abstractmethod
+    def _position_glyphs(self):
+        """Glyph positioning implementation"""
         raise NotImplementedError
+    
+    def place_debug_boxes(self):
+        """For debugging purposes - places sprites that visualize the column"""
+        for stafflines in self.staves:
+            topleft = stafflines.staff_coordinate_system.get_transform(
+                pitch_position=4,
+                time_position=self.time_position - self.left_width
+            ).apply_to(Vector2(0, 0))
+            bottomright = stafflines.staff_coordinate_system.get_transform(
+                pitch_position=-4,
+                time_position=self.time_position + self.right_width
+            ).apply_to(Vector2(0, 0))
+            Sprite.debug_box(
+                space=stafflines.space,
+                rectangle=Rectangle(
+                    x=topleft.x,
+                    y=topleft.y,
+                    width=bottomright.x - topleft.x,
+                    height=bottomright.y - topleft.y
+                ),
+                fill_color=(0, 0, 0, 0),
+                border_width=0.2 # mm
+            )
 
 
 class _NotesColumn(_Column):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, staves: List[Stafflines], rng_seed: float):
+        super().__init__(staves, rng_seed)
         self.noteheads: List[Notehead] = []
     
     def add_notehead(self, notehead: Notehead):
-        self.glyphs.append(notehead)
+        self.add_glyph(notehead, notehead.stafflines)
         self.noteheads.append(notehead)
 
-    def position_glyphs(self):
+    def _position_glyphs(self):
         for i, n in enumerate(self.noteheads):
             sl = n.stafflines
             n.space.parent_space = sl.space
             n.space.transform = sl.staff_coordinate_system.get_transform(
-                pitch_position=i, # TODO: pitch position
-                time_position=self.time_position
+                pitch_position=i*2, # TODO: pitch position
+                time_position=self.time_position + self.rng.random() * 2 - 1
             )
-
-    @property
-    def width(self) -> float:
-        return max(
-            n.sprites[0].physical_width
-            for n in self.noteheads
-        )
-    
-    @property
-    def left_width(self) -> float:
-        return self.width / 2
 
 
 class _ClefsColumn(_Column):
@@ -142,17 +227,9 @@ class ColumnLayoutSynthesizer:
         # stretch-out columns to fill the remaining space
         # TODO: ...
 
-        # TODO: dummy notehead synthesis
-        # for i in range(10):
-        #     glyph: Notehead = self.glyph_synthesizer.synthesize(
-        #         SmuflGlyphClass.noteheadBlack
-        #     )
-        #     stafflines = staves[0]
-        #     glyph.space.parent_space = stafflines.space
-        #     glyph.space.transform = stafflines.staff_coordinate_system.get_transform(
-        #         pitch_position=0.0,
-        #         time_position=i * 5.0
-        #     )
+        # TODO: DEBUG ONLY: place debug rectangles around columns
+        for column in columns:
+            column.place_debug_boxes()
 
         return system
 
@@ -162,7 +239,7 @@ class ColumnLayoutSynthesizer:
         score: Score,
         score_event: ScoreEvent
     ) -> _NotesColumn:
-        column = _NotesColumn()
+        column = _NotesColumn(staves, random.random())
 
         for event in score_event.events:
             for durable in event.durables:
@@ -203,6 +280,7 @@ class ColumnLayoutSynthesizer:
             # TODO: decide based on note type_duration
             SmuflGlyphClass.noteheadBlack
         )
+        notehead.space.parent_space = stafflines.space
         notehead.notes = [note]
         notehead.stafflines = stafflines
         return notehead
