@@ -1,13 +1,16 @@
 from muscima.io import CropObject
-from typing import List
+from typing import List, Type, TypeVar
 from .MppPage import MppPage
 from .MppGlyphMetadata import MppGlyphMetadata
+from .MppGlyphClass import MppGlyphClass
 from mashcima2.scene.Sprite import Sprite
 from mashcima2.geometry.Point import Point
-from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from mashcima2.scene.visual.Glyph import Glyph
 from mashcima2.scene.visual.Notehead import Notehead
 import numpy as np
+
+
+T = TypeVar("T", bound=Glyph)
 
 
 # source:
@@ -15,7 +18,7 @@ import numpy as np
 MUSCIMA_PP_DPI = 300
 
 
-def mpp_mask_to_sprite_bitmap(mask: np.ndarray):
+def _mpp_mask_to_sprite_bitmap(mask: np.ndarray):
     """True/False pixel mask to black on transparent BGRA uint8 bitmap"""
     assert len(mask.shape) == 2
     assert mask.dtype == np.uint8
@@ -25,25 +28,53 @@ def mpp_mask_to_sprite_bitmap(mask: np.ndarray):
     return bitmap
 
 
-def get_black_noteheads(page: MppPage) -> List[Notehead]:
-    crop_objects: List[CropObject] = [
-        o for o in page.crop_objects
-        if o.clsname == "notehead-full"
-        and not page.has_outlink_to(o, "ledger_line")
-    ]
+def _crop_objects_to_single_sprite_glyphs(
+    crop_objects: List[CropObject],
+    page: MppPage,
+    glyph_type: Type[T],
+    glyph_class: MppGlyphClass
+) -> List[T]:
+    glyphs: List[T] = []
 
-    noteheads: List[Notehead] = []
     for o in crop_objects:
-        notehead = Notehead(assigned_glyph_class=SmuflGlyphClass.noteheadBlack)
-        MppGlyphMetadata.stamp_glyph(notehead, page)
-        notehead.sprites = [
+        glyph = glyph_type(
+            glyph_class=str(glyph_class)
+        )
+        MppGlyphMetadata.stamp_glyph(glyph, page)
+        glyph.sprites = [
             Sprite(
-                space=notehead.space,
-                bitmap=mpp_mask_to_sprite_bitmap(o.mask),
+                space=glyph.space,
+                bitmap=_mpp_mask_to_sprite_bitmap(o.mask),
                 bitmap_origin=Point(0.5, 0.5),
                 dpi=MUSCIMA_PP_DPI
             )
         ]
-        noteheads.append(notehead)
+        glyphs.append(glyph)
 
-    return noteheads
+    return glyphs
+
+
+def get_full_noteheads(page: MppPage) -> List[Notehead]:
+    return _crop_objects_to_single_sprite_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname == "notehead-full"
+            and not page.has_outlink_to(o, "ledger_line")
+        ],
+        page=page,
+        glyph_type=Notehead,
+        glyph_class=MppGlyphClass.noteheadFull
+    )
+
+
+def get_empty_noteheads(page: MppPage) -> List[Notehead]:
+    return _crop_objects_to_single_sprite_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname == "notehead-empty"
+            and not page.has_outlink_to(o, "ledger_line")
+        ],
+        page=page,
+        glyph_type=Notehead,
+        glyph_class=MppGlyphClass.noteheadEmpty
+    )

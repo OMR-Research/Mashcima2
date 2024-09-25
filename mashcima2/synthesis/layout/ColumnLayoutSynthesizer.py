@@ -166,8 +166,9 @@ class _ClefsColumn(_Column):
 # IN -> semantic scene object graph
 # OUT -> visual scene object graph
 class ColumnLayoutSynthesizer:
-    def __init__(self, glyph_synthesizer: GlyphSynthesizer):
+    def __init__(self, glyph_synthesizer: GlyphSynthesizer, rng: random.Random):
         self.glyph_synthesizer = glyph_synthesizer
+        self.rng = rng
 
     # TODO: this API is still under development
     # def synthesize(self, stafflines: Stafflines, staff: Staff):
@@ -239,7 +240,7 @@ class ColumnLayoutSynthesizer:
         score: Score,
         score_event: ScoreEvent
     ) -> _NotesColumn:
-        column = _NotesColumn(staves, random.random())
+        column = _NotesColumn(staves, self.rng.random())
 
         for event in score_event.events:
             for durable in event.durables:
@@ -276,9 +277,9 @@ class ColumnLayoutSynthesizer:
         ) + (staff.staff_number - 1)
         stafflines = staves[stafflines_index]
 
-        notehead: Notehead = self.glyph_synthesizer.synthesize(
-            # TODO: decide based on note type_duration
-            SmuflGlyphClass.noteheadBlack
+        notehead = self.glyph_synthesizer.synthesize_glyph(
+            Notehead,
+            SmuflGlyphClass.notehead_from_type_duration(note.type_duration)
         )
         notehead.space.parent_space = stafflines.space
         notehead.notes = [note]

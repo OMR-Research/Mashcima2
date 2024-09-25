@@ -24,6 +24,9 @@ class Glyph(SceneObject, metaclass=abc.ABCMeta):
     https://en.wikipedia.org/wiki/Glyph
     """
 
+    glyph_class: str
+    "Class name used for classification"
+
     space: AffineSpace = field(default_factory=AffineSpace)
     """The local space of the glyph, where the origin point is some important
     point of the glyph (depends on the glyph class, e.g. center of a notehead
@@ -34,9 +37,3 @@ class Glyph(SceneObject, metaclass=abc.ABCMeta):
 
     # TODO: DetectionBox
     # TODO: SegmentationMask
-    
-    @property
-    @abc.abstractmethod
-    def glyph_class(self) -> str:
-        """Returns the class name used for classification"""
-        raise NotImplementedError

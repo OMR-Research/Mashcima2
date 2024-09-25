@@ -3,6 +3,7 @@ from ..scene.Scene import Scene
 from typing import Optional
 from .Container import Container
 from mashcima2.assets.AssetRepository import AssetRepository
+import random
 
 
 class Model(abc.ABC):
@@ -21,6 +22,9 @@ class Model(abc.ABC):
         # register the default asset repository into the container,
         # so that synthesizers can resolve asset bundles
         self.container.instance(AssetRepository, AssetRepository.default())
+
+        # register the default RNG to use during randomization
+        self.container.instance(random.Random, random.Random())
 
         self.scene: Optional[Scene] = None
         "The scene synthesized during the last invocation of this model"

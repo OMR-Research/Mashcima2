@@ -9,7 +9,5 @@ class SymbolRepository:
     Extracted glyphs from MUSCIMA++ so that they can be sampled
     by the synthesizer
     """
-
-    # TODO: this needs to be figured out and defined
-
-    black_noteheads: List[Notehead] = field(default_factory=list)
+    empty_noteheads: List[Notehead] = field(default_factory=list)
+    full_noteheads: List[Notehead] = field(default_factory=list)

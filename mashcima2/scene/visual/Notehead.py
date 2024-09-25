@@ -10,21 +10,11 @@ from nameof import nameof
 class Notehead(Glyph):
     """Glyph of a notehead, contains links specific to a notehead glyph"""
 
-    assigned_glyph_class: str = None
-    "Class assigned to this glyph during construction"
-
     notes: List[Note] = field(default_factory=list)
     "List of notes being represented by this notehead (typically just one)"
 
     stafflines: Optional[Stafflines] = None
     "Which stafflines does this notehead sit on"
-
-    def __post_init__(self):
-        assert self.assigned_glyph_class is not None
-
-    @property
-    def glyph_class(self) -> str:
-        return str(self.assigned_glyph_class)
 
     @staticmethod
     def of_note(note: Note) -> Optional["Notehead"]:

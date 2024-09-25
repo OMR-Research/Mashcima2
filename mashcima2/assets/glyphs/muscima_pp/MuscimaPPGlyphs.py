@@ -1,7 +1,7 @@
 from ...AssetBundle import AssetBundle
 from ...datasets.MuscimaPP import MuscimaPP
 from .MppPage import MppPage
-from .get_symbols import get_black_noteheads
+from .get_symbols import get_full_noteheads, get_empty_noteheads
 from .SymbolRepository import SymbolRepository
 from pathlib import Path
 import pickle
@@ -24,13 +24,18 @@ class MuscimaPPGlyphs(AssetBundle):
 
         # TODO: for each document
         for document_path in document_paths:
+            print("Processing page:", document_path.name)
+
             page = MppPage.load(document_path)
 
-            black_noteheads = get_black_noteheads(page)
+            full_noteheads = get_full_noteheads(page)
+            empty_noteheads = get_empty_noteheads(page)
             
-            repository.black_noteheads += black_noteheads
+            repository.full_noteheads += full_noteheads
+            repository.empty_noteheads += empty_noteheads
 
-            if len(black_noteheads) > 0:
+            # TODO: this is dummy so that it does not take forever to regenerate
+            if len(empty_noteheads) > 0:
                 break
         
         # store all glyphs in a pickle that can then be loaded
