@@ -5,6 +5,7 @@ from ..SceneObject import SceneObject
 from .Durable import Durable
 from .Event import Event
 from .Staff import Staff
+from .AttributesChange import AttributesChange
 from typing import List
 from nameof import nameof
 
@@ -32,6 +33,15 @@ class Measure(SceneObject):
             return links[0].source
         else:
             raise Exception("There is more than one measure for the staff")
+    
+    def add_attributes_change(
+        self,
+        change: AttributesChange,
+        onset: Fraction
+    ):
+        """Adds an attributes change into the measure"""
+        event = self.get_or_create_event(onset)
+        event.attributes_change = change
 
     def add_durable(
         self,

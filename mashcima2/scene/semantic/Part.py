@@ -2,6 +2,9 @@ from dataclasses import dataclass, field
 from ..SceneObject import SceneObject
 from typing import List, Optional
 from .Measure import Measure
+from .Attributes import Attributes
+from .AttributesChange import AttributesChange
+from .Event import Event
 from nameof import nameof
 
 
@@ -31,6 +34,34 @@ class Part(SceneObject):
 
     def append_measure(self, measure: Measure):
         self.measures = [*self.measures, measure]
+    
+    def compute_event_attributes(self):
+        """Sets attributes for all events based on present attributes changes"""
+        attributes: Optional[Attributes] = None
+
+        for measure in self.measures:
+            for event in measure.events:
+                
+                # the very first event
+                if attributes is None:
+                    if event.attributes_change is None:
+                        raise Exception(
+                            "The very first event in a part has to " + \
+                            "have an attributes change"
+                        )
+                    attributes = Attributes.from_first_change(
+                        staff_count=self.staff_count,
+                        change=event.attributes_change
+                    )
+                    event.attributes = attributes
+
+                # non-first event
+                else:
+                    if event.attributes_change:
+                        attributes = attributes.apply_change(
+                            event.attributes_change
+                        )
+                    event.attributes = attributes
 
     def validate(self):
         "Runs various consistency validation checks on the entire part"

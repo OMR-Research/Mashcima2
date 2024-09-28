@@ -9,6 +9,12 @@ from ..scene.semantic.Rest import Rest
 from ..scene.semantic.MeasureRest import MeasureRest
 from ..scene.semantic.TypeDuration import TypeDuration
 from ..scene.semantic.Pitch import Pitch
+from ..scene.semantic.Attributes import Attributes
+from ..scene.semantic.AttributesChange import AttributesChange
+from ..scene.semantic.KeySignature import KeySignature
+from ..scene.semantic.Clef import Clef
+from ..scene.semantic.ClefSign import ClefSign
+from ..scene.semantic.TimeSignature import TimeSignature, TimeSymbol
 from typing import List, TextIO, Optional
 from fractions import Fraction
 from dataclasses import dataclass
@@ -164,6 +170,9 @@ class MusicXmlLoader:
         
         part = self._part_state.part
         self._part_state = None
+
+        # set attributes for each event in the part
+        part.compute_event_attributes()
         
         return part
     
@@ -380,7 +389,6 @@ class MusicXmlLoader:
         return fractional_duration
 
     def _load_attributes(self, attributes_element: ET.Element):
-        # the order of elements is well defined
         # https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/attributes/
         assert attributes_element.tag == "attributes"
 
@@ -388,29 +396,53 @@ class MusicXmlLoader:
             "Part state must be initialized before loading <attributes>"
         assert self._measure_state is not None, \
             "Measure state must be initialized before loading <attributes>"
+        
+        change = AttributesChange()
 
         # divisions:
         divisions_element = attributes_element.find("divisions")
         if divisions_element is not None:
             self._load_divisions(divisions_element)
         
-        # key signature (process even if missing due to re-prints)
-        # key_element = attributes_element.find("key")
-        # self.process_key_signature(key_element)
-
-        # time signature
-        time_element = attributes_element.find("time")
-        if time_element is not None:
-            self._load_time_signature(time_element)
-        
         # staves
         staves_element = attributes_element.find("staves")
         if staves_element is not None:
             self._part_state.part.staff_count = int(staves_element.text)
+        
+        # key signature
+        key_element = attributes_element.find("key")
+        if key_element is not None:
+            staff_number = key_element.attrib.get("number")
+            fifths = int(key_element.find("fifths").text)
+            if staff_number is None:
+                for i in range(1, self._part_state.part.staff_count + 1):
+                    change.keys[i] = KeySignature(fifths=fifths)
+            else:
+                change.keys[int(staff_number)] = KeySignature(fifths=fifths)
 
-        # clef (process even if missing due to re-prints)
-        # clef_elements = attributes_element.findall("clef")
-        # self.process_clefs(clef_elements)
+        # time signature
+        time_element = attributes_element.find("time")
+        if time_element is not None:
+            change.time_signature = self._load_time_signature(time_element)
+
+        # clef
+        clef_elements = attributes_element.findall("clef")
+        for clef_element in clef_elements:
+            staff_number = int(clef_element.attrib.get("number", "1"))
+            after_barline = (clef_element.attrib.get("after-barline", "no") == "yes")
+            sign = ClefSign(clef_element.find("sign").text.upper())
+            line = int(clef_element.find("line").text)
+            change.clefs[staff_number] = Clef(
+                sign=sign,
+                line=line,
+                after_barline=after_barline
+            )
+
+        # add the attributes change into the measure
+        self._measure_state.measure.add_attributes_change(
+            change=change,
+            onset=self._measure_state.fractional_measure_onset
+        )
     
     def _load_divisions(self, divisions_element: ET.Element):
         assert divisions_element.tag == "divisions"
@@ -420,7 +452,7 @@ class MusicXmlLoader:
         assert self._part_state.divisions > 0, \
             "<divisions> should be a positive number"
     
-    def _load_time_signature(self, time_element: ET.Element):
+    def _load_time_signature(self, time_element: ET.Element) -> TimeSignature:
         assert time_element.tag == "time"
         
         # parse XML tree
@@ -437,6 +469,11 @@ class MusicXmlLoader:
         beat_type = int(beat_type_element.text) # typically 4
         assert beat_type > 0
 
+        # extract time symbol
+        symbol = TimeSymbol(
+            time_element.attrib.get("symbol", "normal")
+        )
+
         # compute
         beat_fractional_duration = Fraction(1, beat_type) / Fraction(1, 4)
         measure_fractional_duration = beat_fractional_duration * beats_per_measure
@@ -446,6 +483,12 @@ class MusicXmlLoader:
         self._part_state.beat_type = beat_type
         self._part_state.beat_fractional_duration = beat_fractional_duration
         self._part_state.measure_fractional_duration = measure_fractional_duration
+
+        return TimeSignature(
+            beats=beats_per_measure,
+            beat_type=beat_type,
+            symbol=symbol
+        )
     
     def _load_backup(self, backup_element: ET.Element):
         assert backup_element.tag == "backup"
