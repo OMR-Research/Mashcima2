@@ -20,10 +20,10 @@ class Container:
             scop=punq.Scope.singleton
         )
 
-    def interface(self, abstract_type: Type[T], conrete_type: Type[U]):
+    def interface(self, abstract_type: Type[T], concrete_type: Type[U]):
         self._container.register(
             abstract_type,
-            conrete_type,
+            concrete_type,
             scope=punq.Scope.singleton
         )
     

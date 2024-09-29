@@ -11,9 +11,8 @@ from ..synthesis.layout.ColumnLayoutSynthesizer \
 from ..rendering.BitmapRenderer import BitmapRenderer
 from ..synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from ..synthesis.glyph.MuscimaPPGlyphSynthesizer import MuscimaPPGlyphSynthesizer
-from mashcima2.assets.datasets.MuscimaPP import MuscimaPP
-from mashcima2.assets.AssetRepository import AssetRepository
 from mashcima2.scene.visual.Stafflines import Stafflines
+from .CallbackTrigger import CallbackTrigger
 import numpy as np
 from typing import List
 
@@ -42,6 +41,14 @@ class BaseHandwrittenModel(Model):
         return super().__call__(annotation_file_path)
 
     def call(self, annotation_file_path: str):
+        # resolve services
+        # (must be done first so that callback handlers are registered)
+        callbacks = self.container.resolve(CallbackTrigger)
+        stafflines_synthesizer = self.container.resolve(StafflinesSynthesizer)
+        layout_synthesizer = self.container.resolve(ColumnLayoutSynthesizer)
+
+        # start the synthesis
+        callbacks.trigger_on_sample_begin()
 
         # A4 paper portrait, mm
         self.scene.add(ViewBox(Rectangle(0, 0, 210, 297)))
@@ -51,7 +58,6 @@ class BaseHandwrittenModel(Model):
         self.scene.add(score)
 
         # synthesize stafflines
-        stafflines_synthesizer = self.container.resolve(StafflinesSynthesizer)
         staves: List[Stafflines] = []
         for i in range(6):
             stafflines = stafflines_synthesizer.synthesize(
@@ -60,7 +66,6 @@ class BaseHandwrittenModel(Model):
             staves.append(stafflines)
         
         # synthesize layout
-        layout_synthesizer = self.container.resolve(ColumnLayoutSynthesizer)
         # layout_synthesizer.synthesize(stafflines, staff)
         layout_synthesizer.synthesize_system(
             staves=staves[0:score.staves_per_system],
@@ -80,5 +85,7 @@ class BaseHandwrittenModel(Model):
         # TODO: synthesize background
         mask = bitmap[:, :, 3] == 0
         bitmap[mask, :] = 255
+
+        callbacks.trigger_on_sample_end()
 
         return bitmap

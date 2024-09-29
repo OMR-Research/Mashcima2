@@ -2,6 +2,7 @@ import abc
 from ..scene.Scene import Scene
 from typing import Optional
 from .Container import Container
+from .CallbackTrigger import CallbackTrigger
 from mashcima2.assets.AssetRepository import AssetRepository
 import random
 
@@ -25,6 +26,9 @@ class Model(abc.ABC):
 
         # register the default RNG to use during randomization
         self.container.instance(random.Random, random.Random())
+
+        # register the default callback trigger
+        self.container.instance(CallbackTrigger, CallbackTrigger())
 
         self.scene: Optional[Scene] = None
         "The scene synthesized during the last invocation of this model"
