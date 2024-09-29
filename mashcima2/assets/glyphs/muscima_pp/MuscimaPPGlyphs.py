@@ -31,16 +31,13 @@ class MuscimaPPGlyphs(AssetBundle):
 
             page = MppPage.load(document_path)
 
-            full_noteheads = get_full_noteheads(page)
-            empty_noteheads = get_empty_noteheads(page)
-            normal_barlines = get_normal_barlines(page)
-
-            repository.full_noteheads += full_noteheads
-            repository.empty_noteheads += empty_noteheads
-            repository.normal_barlines += normal_barlines
+            repository.add_glyphs(get_full_noteheads(page))
+            repository.add_glyphs(get_empty_noteheads(page))
+            repository.add_glyphs(get_normal_barlines(page))
 
             # TODO: this is dummy so that it does not take forever to regenerate
-            if len(empty_noteheads) > 0:
+            print(list(repository.glyphs_by_class.keys()))
+            if len(repository.glyphs_by_class.get("muscima_pp::notehead-empty",[])) > 0:
                 break
         
         # store all glyphs in a pickle that can then be loaded

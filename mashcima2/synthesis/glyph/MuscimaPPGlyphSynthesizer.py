@@ -22,14 +22,14 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer):
     def supported_glyphs(self) -> Set[str]:
         return {
             # noteheads
-            SmuflGlyphClass.noteheadWhole,
-            SmuflGlyphClass.noteheadHalf,
-            SmuflGlyphClass.noteheadBlack,
-            MppGlyphClass.noteheadEmpty,
-            MppGlyphClass.noteheadFull,
+            SmuflGlyphClass.noteheadWhole.value,
+            SmuflGlyphClass.noteheadHalf.value,
+            SmuflGlyphClass.noteheadBlack.value,
+            MppGlyphClass.noteheadEmpty.value,
+            MppGlyphClass.noteheadFull.value,
             
             # barlines
-            SmuflGlyphClass.barlineSingle,
+            SmuflGlyphClass.barlineSingle.value,
         }
     
     def synthesize_glyph(
@@ -37,6 +37,8 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer):
         glyph_class: str,
         expected_glyph_type: Type[T] = Glyph
     ) -> T:
+        assert type(glyph_class) is str, "Requested glyph class must be str type"
+
         # pick a glyph from the symbol repository
         glyph = self._synthesize_glyph(glyph_class)
 
@@ -61,14 +63,34 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer):
         if glyph_class == SmuflGlyphClass.noteheadWhole \
         or glyph_class == SmuflGlyphClass.noteheadHalf \
         or glyph_class == MppGlyphClass.noteheadEmpty:
-            return self.rng.choice(self.symbol_repository.empty_noteheads)
+            return self.pick(MppGlyphClass.noteheadEmpty.value)
         
         if glyph_class == SmuflGlyphClass.noteheadBlack \
         or glyph_class == MppGlyphClass.noteheadFull:
-            return self.rng.choice(self.symbol_repository.full_noteheads)
+            return self.pick(MppGlyphClass.noteheadFull.value)
         
         # barlines
-        if glyph_class == SmuflGlyphClass.barlineSingle:
-            return self.rng.choice(self.symbol_repository.normal_barlines)
+        if glyph_class == SmuflGlyphClass.barlineSingle \
+        or glyph_class == MppGlyphClass.thinBarline:
+            return self.pick(MppGlyphClass.thinBarline.value)
         
         raise Exception("Unsupported glyph class: " + glyph_class)
+    
+    def pick(self, glyph_class: str) -> Glyph:
+        # TODO: randomize writer selection only once per page!
+        writer = self.rng.choice(list(self.symbol_repository.all_writers))
+        
+        # get the list of glyphs to choose from
+        # (if writer is missing this class, fall back on all writers)
+        glyphs = self.symbol_repository.glyphs_by_class_and_writer.get(
+            (glyph_class, writer)
+        ) or self.symbol_repository.glyphs_by_class.get(glyph_class)
+
+        if glyphs is None or len(glyphs) == 0:
+            raise Exception(
+                f"The glyph class {glyph_class} is not present in " + \
+                "the symbol repository"
+            )
+        
+        # pick a random glyph from the list
+        return self.rng.choice(glyphs)

@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from mashcima2.scene.SceneObject import SceneObject
 from mashcima2.scene.visual.Glyph import Glyph
 from .MppPage import MppPage
+from typing import Optional
+from nameof import nameof
 
 
 @dataclass
@@ -32,4 +34,12 @@ class MppGlyphMetadata(SceneObject):
             glyph=glyph,
             mpp_writer=mpp_page.mpp_writer,
             mpp_piece=mpp_page.mpp_piece
+        )
+    
+    @staticmethod
+    def of_glyph(glyph: Glyph) -> Optional["MppGlyphMetadata"]:
+        return glyph.get_inlinked(
+            MppGlyphMetadata,
+            nameof(MppGlyphMetadata.glyph),
+            at_most_one=True
         )

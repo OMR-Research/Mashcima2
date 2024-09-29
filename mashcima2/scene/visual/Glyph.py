@@ -36,3 +36,6 @@ class Glyph(SceneObject):
 
     # TODO: DetectionBox
     # TODO: SegmentationMask
+
+    def __post_init__(self):
+        assert type(self.glyph_class) is str, "Glyph class must be string"

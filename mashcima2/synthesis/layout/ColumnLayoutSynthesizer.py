@@ -300,7 +300,9 @@ class ColumnLayoutSynthesizer:
         stafflines = staves[stafflines_index]
 
         notehead = self.glyph_synthesizer.synthesize_glyph(
-            SmuflGlyphClass.notehead_from_type_duration(note.type_duration),
+            SmuflGlyphClass.notehead_from_type_duration(
+                note.type_duration
+            ).value,
             expected_glyph_type=Notehead
         )
         notehead.space.parent_space = stafflines.space
@@ -317,7 +319,7 @@ class ColumnLayoutSynthesizer:
 
         for stafflines in staves:
             barline = self.glyph_synthesizer.synthesize_glyph(
-                SmuflGlyphClass.barlineSingle,
+                SmuflGlyphClass.barlineSingle.value,
                 expected_glyph_type=Glyph
             )
             barline.space.parent_space = stafflines.space

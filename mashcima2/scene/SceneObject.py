@@ -69,10 +69,41 @@ class SceneObject:
             if link.name == name:
                 link.detach()
     
-    def get_inlinked(self, obj_type: Type[T], name: Optional[str] = None) \
-            -> List[T]:
-        return [
+    def get_inlinked(
+        self,
+        obj_type: Type[T],
+        name: Optional[str] = None,
+        at_most_one=False,
+        fail_if_none=False
+    ) -> List[T] | Optional[T] | T:
+        """Returns scene objects that link to this object (called sources)
+        
+        obj_type: What source types are we interested in
+        name: Through which field on the source is the link facilitated
+        at_most_one: Returns the first found source, fails if there are more.
+        """
+        sources = [
             link.source for link in self.inlinks
             if isinstance(link.source, obj_type)
                 and (name is None or link.name == name)
         ]
+
+        if fail_if_none:
+            if len(sources) == 0:
+                raise Exception(
+                    f"There are no {obj_type} linking to " + \
+                    f"{type(self)} via name {name}."
+                )
+
+        if at_most_one:
+            if len(sources) > 1:
+                raise Exception(
+                    f"There are more than one {obj_type} linking to " + \
+                    f"{type(self)} via name {name}."
+                )
+            if len(sources) == 0:
+                return None
+            else:
+                return sources[0]
+        
+        return sources

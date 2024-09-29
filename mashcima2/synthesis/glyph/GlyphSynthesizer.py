@@ -31,6 +31,8 @@ class GlyphSynthesizer(abc.ABC):
     ):
         """Call this method before returning a synthesized glyph to verify it
         has the type and class that the user expect"""
+        if type(glyph_class) is not str:
+            raise Exception("The requested glyph class is not a string.")
         if not isinstance(glyph, expected_glyph_type):
             raise Exception(
                 f"The user expected type {expected_glyph_type} but got " + \

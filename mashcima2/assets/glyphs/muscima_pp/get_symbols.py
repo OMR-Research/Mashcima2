@@ -39,7 +39,7 @@ def _crop_objects_to_single_sprite_glyphs(
 
     for o in crop_objects:
         glyph = glyph_type(
-            glyph_class=str(glyph_class)
+            glyph_class=glyph_class.value
         )
         MppGlyphMetadata.stamp_glyph(glyph, page)
         glyph.sprites = [
