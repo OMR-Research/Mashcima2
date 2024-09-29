@@ -4,7 +4,10 @@ from .MppPage import MppPage
 from .get_symbols import \
     get_full_noteheads, \
     get_empty_noteheads, \
-    get_normal_barlines
+    get_normal_barlines, \
+    get_g_clefs, \
+    get_f_clefs, \
+    get_c_clefs
 from .SymbolRepository import SymbolRepository
 from pathlib import Path
 import pickle
@@ -26,17 +29,19 @@ class MuscimaPPGlyphs(AssetBundle):
 
         repository = SymbolRepository()
 
-        # TODO: for each document
         for document_path in tqdm(document_paths):
             page = MppPage.load(document_path)
 
             repository.add_glyphs(get_full_noteheads(page))
             repository.add_glyphs(get_empty_noteheads(page))
             repository.add_glyphs(get_normal_barlines(page))
+            repository.add_glyphs(get_g_clefs(page))
+            repository.add_glyphs(get_f_clefs(page))
+            repository.add_glyphs(get_c_clefs(page))
 
             # TODO: this is dummy so that it does not take forever to regenerate
-            if len(repository.glyphs_by_class.get("muscima_pp::notehead-empty",[])) > 0:
-                break
+            # if len(repository.glyphs_by_class.get("muscima_pp::notehead-empty",[])) > 0:
+            #     break
         
         # store all glyphs in a pickle that can then be loaded
         # on-request by a MPP glyph synthesizer

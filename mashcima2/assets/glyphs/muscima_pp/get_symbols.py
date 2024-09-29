@@ -1,5 +1,5 @@
 from muscima.io import CropObject
-from typing import List, Type, TypeVar
+from typing import List, Type, TypeVar, Callable, Optional
 from .MppPage import MppPage
 from .MppGlyphMetadata import MppGlyphMetadata
 from .MppGlyphClass import MppGlyphClass
@@ -33,7 +33,8 @@ def _crop_objects_to_single_sprite_glyphs(
     crop_objects: List[CropObject],
     page: MppPage,
     glyph_type: Type[T],
-    glyph_class: MppGlyphClass
+    glyph_class: MppGlyphClass,
+    sprite_origin: Optional[Callable[[CropObject], Point]] = None
 ) -> List[T]:
     glyphs: List[T] = []
 
@@ -46,13 +47,71 @@ def _crop_objects_to_single_sprite_glyphs(
             Sprite(
                 space=glyph.space,
                 bitmap=_mpp_mask_to_sprite_bitmap(o.mask),
-                bitmap_origin=Point(0.5, 0.5),
+                bitmap_origin=(
+                    sprite_origin(o) if sprite_origin else Point(0.5, 0.5)
+                ),
                 dpi=MUSCIMA_PP_DPI
             )
         ]
         glyphs.append(glyph)
 
     return glyphs
+
+
+def _get_y_position_of_staff_line(
+    page: MppPage,
+    obj: CropObject,
+    line_from_top: int = 0
+) -> int:
+    """
+    Given a CropObject it finds the y-coordinate of the corresponding staff line
+    """
+    staff = page.get_outlink_to(obj, "staff")
+    staff_line = None
+    line = 0
+    for l in staff.outlinks:
+        resolved_link = page.id_lookup[l]
+        if resolved_link.clsname == "staff_line":
+            if line == line_from_top:  # counted from top, from zero
+                staff_line = resolved_link
+                break
+            line += 1
+    assert staff_line is not None
+    return (staff_line.top + staff_line.bottom) // 2
+
+
+def _get_symbols_centered_on_line(
+    page: MppPage,
+    clsname: str,
+    glyph_type: Type[T],
+    glyph_class: MppGlyphClass,
+    line_from_top: int,
+    when_center_outside_recenter: bool = False
+) -> List[T]:
+    """
+    Returns list of symbols with given clsname centered on given line index
+    """
+    def _sprite_origin(obj: CropObject) -> Point:
+        line_y = _get_y_position_of_staff_line(
+            page,
+            obj,
+            line_from_top=line_from_top
+        )
+        origin_y = (line_y - obj.top) / obj.height
+        if origin_y < 0 or origin_y > 1 and when_center_outside_recenter:
+            origin_y = 0.5
+        return Point(0.5, origin_y)
+
+    return _crop_objects_to_single_sprite_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname == clsname
+        ],
+        page=page,
+        glyph_type=glyph_type,
+        glyph_class=glyph_class,
+        sprite_origin=_sprite_origin
+    )
 
 
 ################################################
@@ -96,4 +155,36 @@ def get_normal_barlines(page: MppPage) -> List[Glyph]:
         page=page,
         glyph_type=Glyph,
         glyph_class=MppGlyphClass.thinBarline
+    )
+
+
+def get_g_clefs(page: MppPage) -> List[Glyph]:
+    return _get_symbols_centered_on_line(
+        page,
+        clsname="g-clef",
+        glyph_type=Glyph,
+        glyph_class=MppGlyphClass.gClef,
+        line_from_top=3
+    )
+
+
+def get_f_clefs(page: MppPage) -> List[Glyph]:
+    return _get_symbols_centered_on_line(
+        page,
+        clsname="f-clef",
+        glyph_type=Glyph,
+        glyph_class=MppGlyphClass.fClef,
+        line_from_top=1
+    )
+
+
+def get_c_clefs(page: MppPage) -> List[Glyph]:
+    return _crop_objects_to_single_sprite_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname == "c-clef"
+        ],
+        page=page,
+        glyph_type=Glyph,
+        glyph_class=MppGlyphClass.cClef
     )
