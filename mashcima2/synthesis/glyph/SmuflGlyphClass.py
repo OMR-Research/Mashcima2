@@ -12,6 +12,15 @@ class SmuflGlyphClass(str, Enum):
     # https://w3c.github.io/smufl/latest/tables/barlines.html
     barlineSingle = "smufl::barlineSingle"
 
+    # Clefs
+    # https://w3c.github.io/smufl/latest/tables/clefs.html
+    gClef = "smufl::gClef"
+    cClef = "smufl::cClef"
+    fClef = "smufl::fClef"
+    gClefSmall = "smufl::gClefSmall"
+    cClefSmall = "smufl::cClefSmall"
+    fClefSmall = "smufl::fClefSmall"
+
     # Noteheads
     # https://w3c.github.io/smufl/latest/tables/noteheads.html
     noteheadDoubleWhole = "smufl::noteheadDoubleWhole"

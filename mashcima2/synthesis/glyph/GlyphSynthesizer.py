@@ -11,7 +11,11 @@ class GlyphSynthesizer(abc.ABC):
     Represents an interface for a synthesizer that produces glyphs
     """
     @abc.abstractmethod
-    def synthesize_glyph(self, glyph_type: Type[T], glyph_class: str) -> T:
+    def synthesize_glyph(
+        self,
+        glyph_class: str,
+        expected_glyph_type: Type[T] = Glyph
+    ) -> T:
         """Synthesizes a new glyph
         
         :glyph_class What glyph to synthesize.
@@ -21,15 +25,15 @@ class GlyphSynthesizer(abc.ABC):
     
     def verify_glyph_type_and_class(
         self,
-        glyph_type: Type[T],
         glyph_class: str,
+        expected_glyph_type: Type[T],
         glyph: Glyph
     ):
         """Call this method before returning a synthesized glyph to verify it
         has the type and class that the user expect"""
-        if not isinstance(glyph, glyph_type):
+        if not isinstance(glyph, expected_glyph_type):
             raise Exception(
-                f"The user expected type {glyph_type} but got " + \
+                f"The user expected type {expected_glyph_type} but got " + \
                 f"{type(glyph)} instance."
             )
         if glyph.glyph_class != glyph_class:

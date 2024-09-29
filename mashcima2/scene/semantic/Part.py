@@ -3,8 +3,6 @@ from ..SceneObject import SceneObject
 from typing import List, Optional
 from .Measure import Measure
 from .Attributes import Attributes
-from .AttributesChange import AttributesChange
-from .Event import Event
 from nameof import nameof
 
 
