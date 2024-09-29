@@ -37,16 +37,27 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
     @property
     def supported_glyphs(self) -> Set[str]:
         return {
+            # barlines
+            SmuflGlyphClass.barlineSingle.value,
+            MppGlyphClass.thinBarline.value,
+
+            # clefs
+            SmuflGlyphClass.gClef,
+            SmuflGlyphClass.gClefSmall,
+            MppGlyphClass.gClef,
+            SmuflGlyphClass.fClef,
+            SmuflGlyphClass.fClefSmall,
+            MppGlyphClass.fClef,
+            SmuflGlyphClass.cClef,
+            SmuflGlyphClass.cClefSmall,
+            MppGlyphClass.cClef,
+
             # noteheads
             SmuflGlyphClass.noteheadWhole.value,
             SmuflGlyphClass.noteheadHalf.value,
             SmuflGlyphClass.noteheadBlack.value,
             MppGlyphClass.noteheadEmpty.value,
             MppGlyphClass.noteheadFull.value,
-            
-            # barlines
-            SmuflGlyphClass.barlineSingle.value,
-            MppGlyphClass.thinBarline.value,
         }
     
     def on_sample_begin(self):
@@ -86,6 +97,27 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
         return glyph_copy
     
     def _synthesize_glyph(self, glyph_class: str) -> Glyph:
+        # barlines
+        if glyph_class == SmuflGlyphClass.barlineSingle \
+        or glyph_class == MppGlyphClass.thinBarline:
+            return self.pick(MppGlyphClass.thinBarline.value)
+        
+        # clefs
+        if glyph_class == SmuflGlyphClass.gClef \
+        or glyph_class == SmuflGlyphClass.gClefSmall \
+        or glyph_class == MppGlyphClass.gClef:
+            return self.pick(MppGlyphClass.gClef.value)
+        
+        if glyph_class == SmuflGlyphClass.fClef \
+        or glyph_class == SmuflGlyphClass.fClefSmall \
+        or glyph_class == MppGlyphClass.fClef:
+            return self.pick(MppGlyphClass.fClef.value)
+        
+        if glyph_class == SmuflGlyphClass.cClef \
+        or glyph_class == SmuflGlyphClass.cClefSmall \
+        or glyph_class == MppGlyphClass.cClef:
+            return self.pick(MppGlyphClass.cClef.value)
+        
         # noteheads
         if glyph_class == SmuflGlyphClass.noteheadWhole \
         or glyph_class == SmuflGlyphClass.noteheadHalf \
@@ -95,11 +127,6 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
         if glyph_class == SmuflGlyphClass.noteheadBlack \
         or glyph_class == MppGlyphClass.noteheadFull:
             return self.pick(MppGlyphClass.noteheadFull.value)
-        
-        # barlines
-        if glyph_class == SmuflGlyphClass.barlineSingle \
-        or glyph_class == MppGlyphClass.thinBarline:
-            return self.pick(MppGlyphClass.thinBarline.value)
         
         raise Exception("Unsupported glyph class: " + glyph_class)
     

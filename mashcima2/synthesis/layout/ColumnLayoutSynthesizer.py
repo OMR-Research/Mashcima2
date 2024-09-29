@@ -7,6 +7,7 @@ from mashcima2.scene.semantic.Score import Score
 from mashcima2.scene.semantic.ScoreEvent import ScoreEvent
 from mashcima2.scene.semantic.Measure import Measure
 from mashcima2.scene.semantic.Part import Part
+from mashcima2.scene.semantic.ScoreMeasure import ScoreMeasure
 from mashcima2.scene.AffineSpace import AffineSpace
 from mashcima2.scene.Sprite import Sprite
 from mashcima2.scene.visual.HalfNote import HalfNote
@@ -222,6 +223,13 @@ class ColumnLayoutSynthesizer:
         columns: List[_Column] = []
         total_width = 0
 
+        # synthesize header = start of the system signatures
+        first_measure = score.get_score_measure(start_on_measure)
+        column = self.synthesize_header_clefs(staves, first_measure)
+        column.position_glyphs()
+        total_width += column.width
+        columns.append(column)
+
         # TODO: while measures fit or linebreak is reached:
         for i in range(3):
             score_measure = score.get_score_measure(start_on_measure + i)
@@ -319,10 +327,39 @@ class ColumnLayoutSynthesizer:
 
         for stafflines in staves:
             barline = self.glyph_synthesizer.synthesize_glyph(
-                SmuflGlyphClass.barlineSingle.value,
-                expected_glyph_type=Glyph
+                SmuflGlyphClass.barlineSingle.value
             )
             barline.space.parent_space = stafflines.space
             column.add_glyph(barline, stafflines)
 
+        return column
+    
+    # TODO: synthesize clef changes (small clefs)
+    def synthesize_header_clefs(
+        self,
+        staves: List[Stafflines],
+        first_measure: ScoreMeasure
+    ) -> _Column:
+        # TODO: HACK: this should be _ClefColumn
+        # because of this clefs ignore vertical position
+        column = _BarlinesColumn(staves, self.rng.random())
+
+        stafflines_index = 0
+        for part_event in first_measure.events[0].events:
+            for i in range(part_event.attributes.staff_count):
+                clef = part_event.attributes.clefs[i + 1]
+                stafflines = staves[stafflines_index]
+                stafflines_index += 1
+
+                glyph = self.glyph_synthesizer.synthesize_glyph(
+                    SmuflGlyphClass.clef_from_clef_sign(
+                        clef_sign=clef.sign,
+                        small=False
+                    ).value
+                )
+                glyph.space.parent_space = stafflines.space
+                column.add_glyph(glyph, stafflines)
+        
+        assert stafflines_index == len(staves)
+        
         return column

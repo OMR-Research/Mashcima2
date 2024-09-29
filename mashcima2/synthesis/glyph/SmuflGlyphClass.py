@@ -79,3 +79,19 @@ class SmuflGlyphClass(str, Enum):
         if notehead is None:
             raise Exception(f"Unsupported type duration " + duration)
         return notehead
+    
+    @staticmethod
+    def clef_from_clef_sign(clef_sign: str, small=False) -> "SmuflGlyphClass":
+        _LOOKUP = {
+            ("G", False): SmuflGlyphClass.gClef,
+            ("G", True): SmuflGlyphClass.gClefSmall,
+            ("F", False): SmuflGlyphClass.fClef,
+            ("F", True): SmuflGlyphClass.fClefSmall,
+            ("C", False): SmuflGlyphClass.cClef,
+            ("C", True): SmuflGlyphClass.cClefSmall,
+        }
+        key = (clef_sign, small)
+        clef = _LOOKUP.get(key)
+        if clef is None:
+            raise Exception(f"Unsupported clef " + key)
+        return clef
