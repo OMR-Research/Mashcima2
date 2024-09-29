@@ -8,6 +8,7 @@ from .get_symbols import \
 from .SymbolRepository import SymbolRepository
 from pathlib import Path
 import pickle
+from tqdm import tqdm
 
 
 class MuscimaPPGlyphs(AssetBundle):
@@ -26,9 +27,7 @@ class MuscimaPPGlyphs(AssetBundle):
         repository = SymbolRepository()
 
         # TODO: for each document
-        for document_path in document_paths:
-            print("Processing page:", document_path.name)
-
+        for document_path in tqdm(document_paths):
             page = MppPage.load(document_path)
 
             repository.add_glyphs(get_full_noteheads(page))
@@ -36,7 +35,6 @@ class MuscimaPPGlyphs(AssetBundle):
             repository.add_glyphs(get_normal_barlines(page))
 
             # TODO: this is dummy so that it does not take forever to regenerate
-            print(list(repository.glyphs_by_class.keys()))
             if len(repository.glyphs_by_class.get("muscima_pp::notehead-empty",[])) > 0:
                 break
         
