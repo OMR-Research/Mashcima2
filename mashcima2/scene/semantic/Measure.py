@@ -7,7 +7,7 @@ from .Event import Event
 from .Staff import Staff
 from .AttributesChange import AttributesChange
 from typing import List
-from nameof import nameof
+from mashcima2.nameof_via_dummy import nameof_via_dummy
 
 
 @dataclass
@@ -21,18 +21,38 @@ class Measure(SceneObject):
     """Links to all staves within this measure"""
 
     @staticmethod
-    def of_staff(staff: Staff) -> Optional["Measure"]:
-        """Returns the measure corresponding to a given staff"""
-        links = [
-            l for l in staff.inlinks
-            if isinstance(l.source, Measure) and l.name == nameof(l.source.staves)
-        ]
-        if len(links) == 0:
+    def of_durable(
+        durable: Durable,
+        fail_if_none=False
+    ) -> Optional["Measure"] | "Measure":
+        event = Event.of_durable(durable, fail_if_none=fail_if_none)
+        if event is None:
             return None
-        elif len(links) == 1:
-            return links[0].source
-        else:
-            raise Exception("There is more than one measure for the staff")
+        return Measure.of_event(event, fail_if_none=fail_if_none)
+
+    @staticmethod
+    def of_event(
+        event: Event,
+        fail_if_none=False
+    ) -> Optional["Measure"] | "Measure":
+        return event.get_inlinked(
+            Measure,
+            nameof_via_dummy(Measure, lambda m: m.events),
+            at_most_one=True,
+            fail_if_none=fail_if_none
+        )
+
+    @staticmethod
+    def of_staff(
+        staff: Staff,
+        fail_if_none=False
+    ) -> Optional["Measure"] | "Measure":
+        return staff.get_inlinked(
+            Measure,
+            nameof_via_dummy(Measure, lambda m: m.staves),
+            at_most_one=True,
+            fail_if_none=fail_if_none
+        )
     
     def add_attributes_change(
         self,

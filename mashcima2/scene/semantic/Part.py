@@ -3,7 +3,7 @@ from ..SceneObject import SceneObject
 from typing import List, Optional
 from .Measure import Measure
 from .Attributes import Attributes
-from nameof import nameof
+from mashcima2.nameof_via_dummy import nameof_via_dummy
 
 
 @dataclass
@@ -17,18 +17,16 @@ class Part(SceneObject):
     "Number of staves for this part (each measure should have all of them)"
 
     @staticmethod
-    def of_measure(measure: Measure) -> Optional["Part"]:
-        """Returns the part corresponding to a given measure"""
-        links = [
-            l for l in measure.inlinks
-            if isinstance(l.source, Part) and l.name == nameof(l.source.measures)
-        ]
-        if len(links) == 0:
-            return None
-        elif len(links) == 1:
-            return links[0].source
-        else:
-            raise Exception("There is more than one part for the measure")
+    def of_measure(
+        measure: Measure,
+        fail_if_none=False
+    ) -> Optional["Part"] | "Part":
+        return measure.get_inlinked(
+            Part,
+            nameof_via_dummy(Part, lambda p: p.measures),
+            at_most_one=True,
+            fail_if_none=fail_if_none
+        )
 
     def append_measure(self, measure: Measure):
         self.measures = [*self.measures, measure]

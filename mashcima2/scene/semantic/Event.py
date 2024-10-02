@@ -5,6 +5,7 @@ from .Durable import Durable
 from .Attributes import Attributes
 from .AttributesChange import AttributesChange
 from typing import List, Optional
+from mashcima2.nameof_via_dummy import nameof_via_dummy
 
 
 @dataclass
@@ -25,3 +26,15 @@ class Event(SceneObject):
     attributes_change: Optional[AttributesChange] = None
     """Change of attributes when entering this event. If None, there is no
     change on this event."""
+
+    @staticmethod
+    def of_durable(
+        durable: Durable,
+        fail_if_none=False
+    ) -> Optional["Event"] | "Event":
+        return durable.get_inlinked(
+            Event,
+            nameof_via_dummy(Event, lambda e: e.durables),
+            at_most_one=True,
+            fail_if_none=fail_if_none
+        )

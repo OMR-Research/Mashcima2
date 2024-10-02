@@ -5,6 +5,7 @@ from mashcima2.scene.semantic.Note import Note
 from mashcima2.scene.semantic.Rest import Rest
 from mashcima2.scene.semantic.Score import Score
 from mashcima2.scene.semantic.ScoreEvent import ScoreEvent
+from mashcima2.scene.semantic.Event import Event
 from mashcima2.scene.semantic.Measure import Measure
 from mashcima2.scene.semantic.Part import Part
 from mashcima2.scene.semantic.ScoreMeasure import ScoreMeasure
@@ -157,8 +158,20 @@ class _NotesColumn(_Column):
     def _position_glyphs(self):
         for i, n in enumerate(self.noteheads):
             sl = n.stafflines
+            
+            note = n.notes[0]
+            event = Event.of_durable(note, fail_if_none=True)
+            staff = Staff.of_durable(note, fail_if_none=True)
+            measure = Measure.of_staff(staff, fail_if_none=True)
+            staff_index = measure.staves.index(staff)
+            clef = event.attributes.clefs[staff_index + 1]
+            if isinstance(note, Note):
+                pitch_position = clef.pitch_to_pitch_position(note.pitch)
+            else:
+                pitch_position = 0 # TODO: HACK: rests
+            
             n.space.transform = sl.staff_coordinate_system.get_transform(
-                pitch_position=i*2, # TODO: pitch position
+                pitch_position=pitch_position,
                 time_position=self.time_position + self.rng.random() * 2 - 1
             )
 
@@ -292,14 +305,9 @@ class ColumnLayoutSynthesizer:
         score: Score,
         note: Note
     ) -> Notehead:
-        staff = Staff.of_durable(note)
-        assert staff is not None, "The note is detached from any staff"
-
-        measure = Measure.of_staff(staff)
-        assert measure is not None, "The staff is detached from any measure"
-
-        part = Part.of_measure(measure)
-        assert part is not None, "The measure is detached from any part"
+        staff = Staff.of_durable(note, fail_if_none=True)
+        measure = Measure.of_staff(staff, fail_if_none=True)
+        part = Part.of_measure(measure, fail_if_none=True)
         
         part_index = score.parts.index(part)
         stafflines_index = sum(
