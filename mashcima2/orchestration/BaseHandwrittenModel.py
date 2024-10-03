@@ -6,7 +6,7 @@ from ..loading.MusicXmlLoader import MusicXmlLoader
 from ..synthesis.page.NaiveStafflinesSynthesizer \
     import NaiveStafflinesSynthesizer
 from ..synthesis.page.StafflinesSynthesizer import StafflinesSynthesizer
-from ..synthesis.layout.ColumnLayoutSynthesizer \
+from ..synthesis.layout.column.ColumnLayoutSynthesizer \
     import ColumnLayoutSynthesizer
 from ..rendering.BitmapRenderer import BitmapRenderer
 from ..synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
@@ -68,7 +68,7 @@ class BaseHandwrittenModel(Model):
         # synthesize layout
         # layout_synthesizer.synthesize(stafflines, staff)
         layout_synthesizer.synthesize_system(
-            staves=staves[0:score.staves_per_system],
+            staves=staves[0:score.staff_count],
             score=score,
             start_on_measure=0
         )

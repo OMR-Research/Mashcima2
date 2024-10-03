@@ -18,6 +18,11 @@ class Staff(SceneObject):
     durables: List[Durable] = field(default_factory=list)
     "Links to all durables within this staff"
 
+    @property
+    def staff_index(self) -> int:
+        """Zero-based index of the staff in measure stafflines"""
+        return self.staff_number - 1
+
     @staticmethod
     def of_durable(
         durable: Durable,

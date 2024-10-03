@@ -20,6 +20,12 @@ class Measure(SceneObject):
     staves: List[Staff] = field(default_factory=list)
     """Links to all staves within this measure"""
 
+    @property
+    def first_event(self) -> Event:
+        assert self.events[0].fractional_measure_onset == 0, \
+            "The first event in the measure does not have 0 onset"
+        return self.events[0]
+
     @staticmethod
     def of_durable(
         durable: Durable,

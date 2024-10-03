@@ -13,9 +13,22 @@ class Score(SceneObject):
     "List of parts that this score consists of"
 
     @property
-    def staves_per_system(self) -> int:
+    def staff_count(self) -> int:
         """How many staves does a single system have"""
         return sum(p.staff_count for p in self.parts)
+    
+    def first_staff_index_of_part(self, part: Part) -> int:
+        """Given a part returns the staff index (zero-based) of the first staff
+        in that part, relative to the system (the score, all the instruments)"""
+        index = 0
+
+        for p in self.parts:
+            if p is part:
+                return index
+            else:
+                index += p.staff_count
+
+        raise Exception("The given part is not a part of this score.")
     
     def get_score_measure(self, measure_index: int) -> ScoreMeasure:
         """

@@ -3,6 +3,7 @@ from ..SceneObject import SceneObject
 from typing import List, Optional
 from .Measure import Measure
 from .Attributes import Attributes
+from .Staff import Staff
 from mashcima2.nameof_via_dummy import nameof_via_dummy
 
 
