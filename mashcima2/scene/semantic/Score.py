@@ -3,6 +3,10 @@ from ..SceneObject import SceneObject
 from typing import List
 from .Part import Part
 from .ScoreMeasure import ScoreMeasure
+from .Event import Event
+from .Staff import Staff
+from .Measure import Measure
+from .Durable import Durable
 
 
 @dataclass
@@ -29,6 +33,17 @@ class Score(SceneObject):
                 index += p.staff_count
 
         raise Exception("The given part is not a part of this score.")
+    
+    def staff_index_of_durable(self, durable: Durable) -> int:
+        """Returns the staff index (zero-based) of the given durable
+        with respect to the whole score (all the instruments) (to the system)"""
+        staff = Staff.of_durable(durable, fail_if_none=True)
+        measure = Measure.of_staff(staff, fail_if_none=True)
+        part = Part.of_measure(measure, fail_if_none=True)
+
+        assert part in self.parts, "Given part must be in this score"
+        
+        return self.first_staff_index_of_part(part) + staff.staff_index
     
     def get_score_measure(self, measure_index: int) -> ScoreMeasure:
         """
