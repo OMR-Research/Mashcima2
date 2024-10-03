@@ -49,13 +49,20 @@ class SmuflGlyphClass(str, Enum):
 
     # Rests
     # https://www.w3.org/2019/03/smufl13/tables/rests.html
-    # ...
+    restMaxima = "smulf::restMaxima"
+    restLonga = "smulf::restLonga"
+    restDoubleWhole = "smulf::restDoubleWhole"
     restWhole = "smulf::restWhole"
     restHalf = "smulf::restHalf"
     restQuarter = "smulf::restQuarter"
     rest8th = "smulf::rest8th"
     rest16th = "smulf::rest16th"
     rest32nd = "smulf::rest32nd"
+    rest64th = "smulf::rest64th"
+    rest128th = "smulf::rest128th"
+    rest256th = "smulf::rest256th"
+    rest512th = "smulf::rest512th"
+    rest1024th = "smulf::rest1024th"
 
     @staticmethod
     def notehead_from_type_duration(duration: TypeDuration) -> "SmuflGlyphClass":
@@ -64,6 +71,7 @@ class SmuflGlyphClass(str, Enum):
             TypeDuration.thousand_twenty_fourth: SmuflGlyphClass.noteheadBlack,
             TypeDuration.five_hundred_twelfth: SmuflGlyphClass.noteheadBlack,
             TypeDuration.two_hundred_fifty_sixth: SmuflGlyphClass.noteheadBlack,
+            TypeDuration.hundred_twenty_eighth: SmuflGlyphClass.noteheadBlack,
             TypeDuration.sixty_fourth: SmuflGlyphClass.noteheadBlack,
             TypeDuration.thirty_second: SmuflGlyphClass.noteheadBlack,
             TypeDuration.sixteenth: SmuflGlyphClass.noteheadBlack,
@@ -74,6 +82,30 @@ class SmuflGlyphClass(str, Enum):
             TypeDuration.breve: SmuflGlyphClass.noteheadDoubleWhole,
             TypeDuration.long: SmuflGlyphClass.noteheadDoubleWholeSquare,
             TypeDuration.maxima: SmuflGlyphClass.noteheadDoubleWholeSquare,
+        }
+        notehead = _LOOKUP.get(duration)
+        if notehead is None:
+            raise Exception(f"Unsupported type duration " + duration)
+        return notehead
+    
+    @staticmethod
+    def rest_from_type_duration(duration: TypeDuration) -> "SmuflGlyphClass":
+        # https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/note-type-value/
+        _LOOKUP = {
+            TypeDuration.thousand_twenty_fourth: SmuflGlyphClass.rest1024th,
+            TypeDuration.five_hundred_twelfth: SmuflGlyphClass.rest512th,
+            TypeDuration.two_hundred_fifty_sixth: SmuflGlyphClass.rest256th,
+            TypeDuration.hundred_twenty_eighth: SmuflGlyphClass.rest128th,
+            TypeDuration.sixty_fourth: SmuflGlyphClass.rest64th,
+            TypeDuration.thirty_second: SmuflGlyphClass.rest32nd,
+            TypeDuration.sixteenth: SmuflGlyphClass.rest16th,
+            TypeDuration.eighth: SmuflGlyphClass.rest8th,
+            TypeDuration.quarter: SmuflGlyphClass.restQuarter,
+            TypeDuration.half: SmuflGlyphClass.restHalf,
+            TypeDuration.whole: SmuflGlyphClass.restWhole,
+            TypeDuration.breve: SmuflGlyphClass.restDoubleWhole,
+            TypeDuration.long: SmuflGlyphClass.restLonga,
+            TypeDuration.maxima: SmuflGlyphClass.restMaxima,
         }
         notehead = _LOOKUP.get(duration)
         if notehead is None:

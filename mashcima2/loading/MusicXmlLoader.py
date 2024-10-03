@@ -242,6 +242,20 @@ class MusicXmlLoader:
                 pitch = Pitch.parse(octave, step, alter)
             return pitch, is_measure_rest
         
+        # <display-step> and <display-octave> for rests
+        def _display_pitch() -> Optional[Pitch]:
+            rest_element = note_element.find("rest")
+            if rest_element is None:
+                return None
+            step_element = rest_element.find("display-step")
+            octave_element = rest_element.find("display-octave")
+            if step_element is None or octave_element is None:
+                return None
+            return Pitch.parse(
+                octave=octave_element.text,
+                step=step_element.text
+            )
+        
         # <voice>
         def _voice():
             voice_element = note_element.find("voice")
@@ -299,6 +313,7 @@ class MusicXmlLoader:
         is_grace_note, is_grace_slash = _grace()
         is_chord = _chord()
         pitch, is_measure_rest = _rest_or_pitch() # None pitch for rests
+        display_pitch = _display_pitch() # for rests only
         voice_name = _voice()
         type_duration = _type(is_measure_rest) # None for measure rests
         time_modification = _time_modification()
@@ -332,10 +347,11 @@ class MusicXmlLoader:
             assert onset == 0, "Measure rest should begin at 0 onset"
             self._measure_state.measure.add_durable(
                 durable=MeasureRest(
-                    fractional_duration=fractional_duration
+                    fractional_duration=fractional_duration,
+                    display_pitch=display_pitch
                 ),
                 onset=onset,
-                staff_number=staff_number
+                staff_number=staff_number,
             )
             return
         
@@ -346,6 +362,7 @@ class MusicXmlLoader:
                     type_duration=type_duration,
                     duration_dots=duration_dots,
                     fractional_duration=fractional_duration,
+                    display_pitch=display_pitch
                 ),
                 onset=onset,
                 staff_number=staff_number

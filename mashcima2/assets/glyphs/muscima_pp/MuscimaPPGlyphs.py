@@ -5,6 +5,11 @@ from .get_symbols import \
     get_full_noteheads, \
     get_empty_noteheads, \
     get_normal_barlines, \
+    get_whole_rests, \
+    get_half_rests, \
+    get_quarter_rests, \
+    get_eighth_rests, \
+    get_sixteenth_rests, \
     get_g_clefs, \
     get_f_clefs, \
     get_c_clefs
@@ -35,14 +40,15 @@ class MuscimaPPGlyphs(AssetBundle):
             repository.add_glyphs(get_full_noteheads(page))
             repository.add_glyphs(get_empty_noteheads(page))
             repository.add_glyphs(get_normal_barlines(page))
+            repository.add_glyphs(get_whole_rests(page))
+            repository.add_glyphs(get_half_rests(page))
+            repository.add_glyphs(get_quarter_rests(page))
+            repository.add_glyphs(get_eighth_rests(page))
+            repository.add_glyphs(get_sixteenth_rests(page))
             repository.add_glyphs(get_g_clefs(page))
             repository.add_glyphs(get_f_clefs(page))
             repository.add_glyphs(get_c_clefs(page))
 
-            # TODO: this is dummy so that it does not take forever to regenerate
-            # if len(repository.glyphs_by_class.get("muscima_pp::notehead-empty",[])) > 0:
-            #     break
-        
         # store all glyphs in a pickle that can then be loaded
         # on-request by a MPP glyph synthesizer
         with open(self.symbol_repository_path, "wb") as file:

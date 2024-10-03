@@ -1,4 +1,4 @@
-from typing import Set, Type
+from typing import Set, Type, Dict
 from .GlyphSynthesizer import GlyphSynthesizer, T
 from mashcima2.scene.visual.Glyph import Glyph
 from mashcima2.assets.AssetRepository import AssetRepository
@@ -9,6 +9,43 @@ from mashcima2.orchestration.CallbackTrigger import CallbackTrigger
 from mashcima2.orchestration.Callback import Callback
 import random
 import copy
+
+
+_QUERY_TO_MPP_LOOKUP: Dict[str, str] = {
+    # barlines
+    SmuflGlyphClass.barlineSingle.value: MppGlyphClass.thinBarline.value,
+    MppGlyphClass.thinBarline.value: MppGlyphClass.thinBarline.value,
+
+    # clefs    (clefs ignore the normal/small distinction)
+    SmuflGlyphClass.gClef: MppGlyphClass.gClef,
+    SmuflGlyphClass.gClefSmall: MppGlyphClass.gClef,
+    MppGlyphClass.gClef: MppGlyphClass.gClef,
+    SmuflGlyphClass.fClef: MppGlyphClass.fClef,
+    SmuflGlyphClass.fClefSmall: MppGlyphClass.fClef,
+    MppGlyphClass.fClef: MppGlyphClass.fClef,
+    SmuflGlyphClass.cClef: MppGlyphClass.cClef,
+    SmuflGlyphClass.cClefSmall: MppGlyphClass.cClef,
+    MppGlyphClass.cClef: MppGlyphClass.cClef,
+
+    # noteheads
+    SmuflGlyphClass.noteheadWhole.value: MppGlyphClass.noteheadEmpty.value,
+    SmuflGlyphClass.noteheadHalf.value: MppGlyphClass.noteheadEmpty.value,
+    SmuflGlyphClass.noteheadBlack.value: MppGlyphClass.noteheadFull.value,
+    MppGlyphClass.noteheadEmpty.value: MppGlyphClass.noteheadEmpty.value,
+    MppGlyphClass.noteheadFull.value: MppGlyphClass.noteheadFull.value,
+
+    # rests
+    SmuflGlyphClass.restWhole.value: MppGlyphClass.wholeRest.value,
+    SmuflGlyphClass.restHalf.value: MppGlyphClass.halfRest.value,
+    SmuflGlyphClass.restQuarter.value: MppGlyphClass.quarterRest.value,
+    SmuflGlyphClass.rest8th.value: MppGlyphClass.eighthRest.value,
+    SmuflGlyphClass.rest16th.value: MppGlyphClass.sixteenthRest.value,
+    MppGlyphClass.wholeRest.value: MppGlyphClass.wholeRest.value,
+    MppGlyphClass.halfRest.value: MppGlyphClass.halfRest.value,
+    MppGlyphClass.quarterRest.value: MppGlyphClass.quarterRest.value,
+    MppGlyphClass.eighthRest.value: MppGlyphClass.eighthRest.value,
+    MppGlyphClass.sixteenthRest.value: MppGlyphClass.sixteenthRest.value,
+}
 
 
 class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
@@ -36,29 +73,7 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
     
     @property
     def supported_glyphs(self) -> Set[str]:
-        return {
-            # barlines
-            SmuflGlyphClass.barlineSingle.value,
-            MppGlyphClass.thinBarline.value,
-
-            # clefs
-            SmuflGlyphClass.gClef,
-            SmuflGlyphClass.gClefSmall,
-            MppGlyphClass.gClef,
-            SmuflGlyphClass.fClef,
-            SmuflGlyphClass.fClefSmall,
-            MppGlyphClass.fClef,
-            SmuflGlyphClass.cClef,
-            SmuflGlyphClass.cClefSmall,
-            MppGlyphClass.cClef,
-
-            # noteheads
-            SmuflGlyphClass.noteheadWhole.value,
-            SmuflGlyphClass.noteheadHalf.value,
-            SmuflGlyphClass.noteheadBlack.value,
-            MppGlyphClass.noteheadEmpty.value,
-            MppGlyphClass.noteheadFull.value,
-        }
+        return set(_QUERY_TO_MPP_LOOKUP.keys())
     
     def on_sample_begin(self):
         """Called through callbacks"""
@@ -97,36 +112,8 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
         return glyph_copy
     
     def _synthesize_glyph(self, glyph_class: str) -> Glyph:
-        # barlines
-        if glyph_class == SmuflGlyphClass.barlineSingle \
-        or glyph_class == MppGlyphClass.thinBarline:
-            return self.pick(MppGlyphClass.thinBarline.value)
-        
-        # clefs
-        if glyph_class == SmuflGlyphClass.gClef \
-        or glyph_class == SmuflGlyphClass.gClefSmall \
-        or glyph_class == MppGlyphClass.gClef:
-            return self.pick(MppGlyphClass.gClef.value)
-        
-        if glyph_class == SmuflGlyphClass.fClef \
-        or glyph_class == SmuflGlyphClass.fClefSmall \
-        or glyph_class == MppGlyphClass.fClef:
-            return self.pick(MppGlyphClass.fClef.value)
-        
-        if glyph_class == SmuflGlyphClass.cClef \
-        or glyph_class == SmuflGlyphClass.cClefSmall \
-        or glyph_class == MppGlyphClass.cClef:
-            return self.pick(MppGlyphClass.cClef.value)
-        
-        # noteheads
-        if glyph_class == SmuflGlyphClass.noteheadWhole \
-        or glyph_class == SmuflGlyphClass.noteheadHalf \
-        or glyph_class == MppGlyphClass.noteheadEmpty:
-            return self.pick(MppGlyphClass.noteheadEmpty.value)
-        
-        if glyph_class == SmuflGlyphClass.noteheadBlack \
-        or glyph_class == MppGlyphClass.noteheadFull:
-            return self.pick(MppGlyphClass.noteheadFull.value)
+        if glyph_class in _QUERY_TO_MPP_LOOKUP:
+            return self.pick(_QUERY_TO_MPP_LOOKUP[glyph_class])
         
         raise Exception("Unsupported glyph class: " + glyph_class)
     

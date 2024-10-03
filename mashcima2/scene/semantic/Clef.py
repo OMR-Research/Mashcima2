@@ -48,3 +48,13 @@ class Clef:
         given_linear_pitch = pitch.get_linear_pitch(with_alters=False)
         return origin_pitch_position \
             + (given_linear_pitch - origin_linear_pitch)
+
+    def pitch_position_to_pitch(self, pitch_position: int) -> Pitch:
+        """Returns the note pitch on a given stafflines-pitch-position
+        if this clef is currently active for the staff"""
+        origin_pitch_position = Clef.clef_line_to_pitch_position(self.line)
+        origin_linear_pitch = Clef.origin_pitch(self.sign) \
+            .get_linear_pitch(with_alters=False)
+        linear_pitch = (pitch_position - origin_pitch_position) \
+            + origin_linear_pitch
+        return Pitch.from_linear_pitch(linear_pitch)

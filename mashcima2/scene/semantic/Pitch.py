@@ -2,6 +2,9 @@ from enum import Enum
 from dataclasses import dataclass, field
 
 
+STEP_ORDER = ["C", "D", "E", "F", "G", "A", "B"]
+
+
 class Octave(int, Enum):
     """Octave number of the scientific picth notation"""
     # https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/octave/
@@ -57,15 +60,23 @@ class Pitch:
         """Converts the pitch object into a number where 0 is A0 note
         and then it increases by one for each tone. If you include alters,
         the returned value is a float with +-0.5 based on the alter."""
-        lookup = ["C", "D", "E", "F", "G", "A", "B"]
-        step_index = lookup.index(self.step.value)
-        linear_pitch = self.octave.value * len(lookup) + step_index
+        step_index = STEP_ORDER.index(self.step.value)
+        linear_pitch = self.octave.value * len(STEP_ORDER) + step_index
         if with_alters:
             if self.alter == Alter.sharp:
                 linear_pitch += 0.5
             elif self.alter == Alter.flat:
                 linear_pitch -= 0.5
         return linear_pitch
+    
+    @staticmethod
+    def from_linear_pitch(linear_pitch: int) -> "Pitch":
+        """Reconstructs a pitch object from an integer linear pitch"""
+        assert type(linear_pitch) is int, \
+            "Float reconstructions are not supported"
+        step_index = linear_pitch % len(STEP_ORDER)
+        octave = linear_pitch // len(STEP_ORDER)
+        return Pitch(Octave(octave), Step(STEP_ORDER[step_index]))
     
     def __repr__(self) -> str:
         suffix = ""
@@ -81,11 +92,14 @@ if __name__ == "__main__":
     # (linear representation is used for staff positioning and conversions)
     print("Pitches and their linear representation:")
     for octave in range(9):
-        for step in ["C", "D", "E", "F", "G", "A", "B"]:
+        for step in STEP_ORDER:
             pitch = Pitch.parse(octave, step)
+            linear_pitch = pitch.get_linear_pitch()
+            assert pitch.octave == Pitch.from_linear_pitch(linear_pitch).octave
+            assert pitch.step == Pitch.from_linear_pitch(linear_pitch).step
             print(
                 repr(pitch),
-                str(pitch.get_linear_pitch()).zfill(2),
+                str(linear_pitch).zfill(2),
                 end=" | "
             )
         print()

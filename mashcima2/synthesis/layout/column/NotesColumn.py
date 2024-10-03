@@ -5,16 +5,14 @@ from mashcima2.scene.semantic.Staff import Staff
 from mashcima2.scene.semantic.ScoreEvent import ScoreEvent
 from mashcima2.scene.semantic.Note import Note
 from mashcima2.scene.semantic.Rest import Rest
-from mashcima2.scene.semantic.Pitch import Pitch
 from mashcima2.scene.semantic.MeasureRest import MeasureRest
 from mashcima2.scene.visual.Stafflines import Stafflines
-from mashcima2.scene.visual.Glyph import Glyph
 from mashcima2.scene.visual.Notehead import Notehead
 from mashcima2.scene.visual.RestGlyph import RestGlyph
 from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from .ColumnBase import ColumnBase
-from typing import List, Dict
+from typing import List, Dict, Optional
 from dataclasses import dataclass
 import random
 
@@ -50,16 +48,43 @@ class _NoteheadContext:
     "Horizontal notehead column position: -1, 0, +1 for the three columns"
 
 
+@dataclass
+class _RestContext:
+    glyph: RestGlyph
+    "The rest glyph"
+
+    clef: Clef
+    "What clef applies to the rest"
+
+    stafflines: Stafflines
+    "What stafflines is the rest placed onto"
+
+
 class NotesColumn(ColumnBase):
     def __post_init__(self):
         self.notehead_contexts: List[_NoteheadContext] = []
-        self.rests: List[RestGlyph]
+        self.rest_contexts: List[_RestContext] = []
     
-    def add_rest(self, rest: RestGlyph):
-        self.glyphs.append(rest)
-        self.rests.append(rest)
+    def add_rest(self, glyph: RestGlyph):
+        assert glyph.rest is not None
+        
+        self.glyphs.append(glyph)
+
+        rest = glyph.rest
+        event = Event.of_durable(rest, fail_if_none=True)
+        staff = Staff.of_durable(rest, fail_if_none=True)
+        clef = event.attributes.clefs[staff.staff_number]
+        stafflines = self.get_stafflines_of_glyph(glyph)
+
+        self.rest_contexts.append(_RestContext(
+            glyph=glyph,
+            clef=clef,
+            stafflines=stafflines
+        ))
 
     def add_notehead(self, notehead: Notehead):
+        assert len(notehead.notes) > 0
+
         self.glyphs.append(notehead)
         
         note = notehead.notes[0]
@@ -84,6 +109,7 @@ class NotesColumn(ColumnBase):
         for stafflines in self.staves:
             self.kick_off_noteheads_on_stafflines(stafflines)
         self.position_noteheads()
+        self.position_rests()
     
     def kick_off_noteheads_on_stafflines(self, stafflines: Stafflines):
         contexts = [
@@ -133,13 +159,22 @@ class NotesColumn(ColumnBase):
             )
     
     def position_rests(self):
-        for rest in self.rests:
-            sl = self.get_stafflines_of_glyph(rest)
+        for ctx in self.rest_contexts:
+            rest = ctx.glyph.rest
+            glyph = ctx.glyph
+            clef = ctx.clef
+            sl = ctx.stafflines
 
-            # TODO: half rest is not centered like this!
-            pitch_position = 0
+            # TODO: parse display pitch from MXL!
+            # rest.display_pitch
+            display_pitch = RestGlyph.default_display_pitch(
+                clef, rest.type_duration
+            )
+            pitch_position = RestGlyph.display_pitch_to_glyph_pitch_position(
+                clef, display_pitch, rest.type_duration
+            )
 
-            rest.space.transform = sl.staff_coordinate_system.get_transform(
+            glyph.space.transform = sl.staff_coordinate_system.get_transform(
                 pitch_position=pitch_position,
                 time_position=self.time_position
             )
@@ -189,17 +224,25 @@ def synthesize_notes_column(
 
     # === rests ===
 
-    # for event in score_event.events:
-    #     for durable in event.durables:
-    #         if isinstance(durable, Rest) or isinstance(durable, MeasureRest):
-    #             # TODO: hack: create notehead even for a rest...
-    #             rest = glyph_synthesizer.synthesize_glyph(
-    #                 SmuflGlyphClass.notehead_from_type_duration(
-    #                     note.type_duration
-    #                 ).value,
-    #                 expected_glyph_type=Notehead
-    #             )
-    #             rest.space.parent_space = stafflines.space
-    #             column.add_rest(rest)
+    # for all the rests (including measure rests)
+    for event in score_event.events:
+        for durable in event.durables:
+            if not isinstance(durable, Rest): # inlcudes MeasureRest
+                continue
+            
+            stafflines_index = score.staff_index_of_durable(durable)
+            stafflines = staves[stafflines_index]
+
+            # create the rest
+            glyph_class = SmuflGlyphClass.rest_from_type_duration(
+                durable.type_duration
+            )
+            rest = glyph_synthesizer.synthesize_glyph(
+                glyph_class.value,
+                expected_glyph_type=RestGlyph
+            )
+            rest.space.parent_space = stafflines.space
+            rest.rest = durable
+            column.add_rest(rest)
     
     return column

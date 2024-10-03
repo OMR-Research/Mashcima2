@@ -9,3 +9,4 @@ from .Pitch import Pitch
 @dataclass
 class Note(Durable):
     pitch: Pitch
+    "Musical pitch of the note"

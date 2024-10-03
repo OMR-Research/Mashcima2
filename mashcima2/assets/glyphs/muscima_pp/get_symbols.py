@@ -7,6 +7,7 @@ from mashcima2.scene.Sprite import Sprite
 from mashcima2.geometry.Point import Point
 from mashcima2.scene.visual.Glyph import Glyph
 from mashcima2.scene.visual.Notehead import Notehead
+from mashcima2.scene.visual.RestGlyph import RestGlyph
 import numpy as np
 
 
@@ -98,7 +99,7 @@ def _get_symbols_centered_on_line(
             line_from_top=line_from_top
         )
         origin_y = (line_y - obj.top) / obj.height
-        if origin_y < 0 or origin_y > 1 and when_center_outside_recenter:
+        if (origin_y < 0 or origin_y > 1) and when_center_outside_recenter:
             origin_y = 0.5
         return Point(0.5, origin_y)
 
@@ -142,6 +143,74 @@ def get_empty_noteheads(page: MppPage) -> List[Notehead]:
         page=page,
         glyph_type=Notehead,
         glyph_class=MppGlyphClass.noteheadEmpty
+    )
+
+
+def get_whole_rests(page: MppPage) -> List[RestGlyph]:
+    glyphs = _get_symbols_centered_on_line(
+        page,
+        clsname="whole_rest",
+        glyph_type=RestGlyph,
+        glyph_class=MppGlyphClass.wholeRest,
+        line_from_top=1
+    )
+    # NOTE: these checks were in the old version, but they make situation
+    # worse, because some rests are so big that they should be over the staff,
+    # not touching the staff. So it's better to keep the original center.
+    # for glyph in glyphs:
+    #     origin = glyph.sprites[0].bitmap_origin
+    #     if origin.y < -0.5 or origin.y > 0.5:
+    #         glyph.sprites[0].bitmap_origin = Point(origin.x, 0.0)
+    return glyphs
+
+
+def get_half_rests(page: MppPage) -> List[RestGlyph]:
+    glyphs = _get_symbols_centered_on_line(
+        page,
+        clsname="half_rest",
+        glyph_type=RestGlyph,
+        glyph_class=MppGlyphClass.halfRest,
+        line_from_top=2
+    )
+    # NOTE: these checks were in the old version, but they make situation
+    # worse, because some rests are so big that they should be over the staff,
+    # not touching the staff. So it's better to keep the original center.
+    # for glyph in glyphs:
+    #     origin = glyph.sprites[0].bitmap_origin
+    #     if origin.y < -1.5 or origin.y > 0.5:
+    #         glyph.sprites[0].bitmap_origin = Point(origin.x, 1.0)
+    return glyphs
+
+
+def get_quarter_rests(page: MppPage) -> List[RestGlyph]:
+    return _get_symbols_centered_on_line(
+        page,
+        clsname="quarter_rest",
+        glyph_type=RestGlyph,
+        glyph_class=MppGlyphClass.quarterRest,
+        line_from_top=2,
+        when_center_outside_recenter=True
+    )
+
+
+def get_eighth_rests(page: MppPage) -> List[RestGlyph]:
+    return _get_symbols_centered_on_line(
+        page,
+        clsname="8th_rest",
+        glyph_type=RestGlyph,
+        glyph_class=MppGlyphClass.eighthRest,
+        line_from_top=2,
+        when_center_outside_recenter=True
+    )
+
+def get_sixteenth_rests(page: MppPage) -> List[RestGlyph]:
+    return _get_symbols_centered_on_line(
+        page,
+        clsname="16th_rest",
+        glyph_type=RestGlyph,
+        glyph_class=MppGlyphClass.sixteenthRest,
+        line_from_top=2,
+        when_center_outside_recenter=True
     )
 
 

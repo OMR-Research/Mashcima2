@@ -15,6 +15,7 @@ class TypeDuration(str, Enum):
     thousand_twenty_fourth = "1024th"
     five_hundred_twelfth = "512th"
     two_hundred_fifty_sixth = "256th"
+    hundred_twenty_eighth = "128th"
     sixty_fourth = "64th"
     thirty_second = "32nd"
     sixteenth = "16th"
