@@ -165,11 +165,10 @@ class NotesColumn(ColumnBase):
             clef = ctx.clef
             sl = ctx.stafflines
 
-            # TODO: parse display pitch from MXL!
-            # rest.display_pitch
-            display_pitch = RestGlyph.default_display_pitch(
-                clef, rest.type_duration
-            )
+            display_pitch = rest.display_pitch \
+                or RestGlyph.default_display_pitch(
+                    clef, rest.type_duration
+                )
             pitch_position = RestGlyph.display_pitch_to_glyph_pitch_position(
                 clef, display_pitch, rest.type_duration
             )
