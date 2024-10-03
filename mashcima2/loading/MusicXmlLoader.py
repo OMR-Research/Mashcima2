@@ -12,6 +12,8 @@ from ..scene.semantic.KeySignature import KeySignature
 from ..scene.semantic.Clef import Clef
 from ..scene.semantic.ClefSign import ClefSign
 from ..scene.semantic.TimeSignature import TimeSignature, TimeSymbol
+from ..scene.semantic.Chord import Chord
+from ..scene.semantic.StemValue import StemValue
 from typing import List, TextIO, Optional
 from fractions import Fraction
 from dataclasses import dataclass
@@ -52,6 +54,10 @@ class _MeasureState:
 
     measure: Measure
     "The measure that is being constructed as it's being parsed"
+
+    last_chord: Optional[Chord] = None
+    """Last chord whose note was constructed. If we hit the <chord/> element,
+    then this chord should be extended. Otherwise a new one should be created."""
 
     fractional_measure_onset: Fraction = Fraction(0, 1) # zero
     """How many quarter notes from the start of the measure are we currently"""
@@ -291,7 +297,18 @@ class MusicXmlLoader:
             return len(note_element.findall("dot"))
         
         # TODO: <accidental>
+        
         # TODO: <stem>
+        def _stem() -> Optional[StemValue]:
+            stem_element = note_element.find("stem")
+            if stem_element is None:
+                return None
+            if stem_element.text not in ["up", "down", "double", "none"]:
+                self._error(
+                    f"Unknown stem type '{stem_element.text}'.",
+                    ET.tostring(note)
+                )
+            return StemValue(stem_element.text)
 
         # <staff>
         def _staff() -> int:
@@ -318,6 +335,7 @@ class MusicXmlLoader:
         type_duration = _type(is_measure_rest) # None for measure rests
         time_modification = _time_modification()
         duration_dots = _dot()
+        stem_value = _stem()
         staff_number = _staff()
         
         fractional_duration = self._part_state.measure_fractional_duration \
@@ -339,6 +357,17 @@ class MusicXmlLoader:
             onset -= fractional_duration
         if not is_chord:
             self._measure_state.seek_forward(fractional_duration)
+        
+        # determine the current chord instance
+        current_chord: Optional[Chord] = None
+        if is_measure_rest or pitch is None:
+            self._measure_state.last_chord = None
+        else:
+            if is_chord: # extend old chord
+                current_chord = self._measure_state.last_chord
+            else: # start a new chord
+                current_chord = Chord()
+        self._measure_state.last_chord = current_chord # update state
 
         # handle measure rests
         if is_measure_rest:
@@ -370,16 +399,19 @@ class MusicXmlLoader:
             return
         
         # handle notes
+        note = Note(
+            pitch=pitch,
+            type_duration=type_duration,
+            duration_dots=duration_dots,
+            fractional_duration=fractional_duration,
+        )
         self._measure_state.measure.add_durable(
-            durable=Note(
-                pitch=pitch,
-                type_duration=type_duration,
-                duration_dots=duration_dots,
-                fractional_duration=fractional_duration,
-            ),
+            durable=note,
             onset=onset,
             staff_number=staff_number
         )
+
+        current_chord.add_note(note, stem_value)
     
     def _decode_fractional_duration(
         self,
