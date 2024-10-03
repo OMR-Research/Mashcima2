@@ -10,10 +10,12 @@ from mashcima2.scene.semantic.Part import Part
 from mashcima2.scene.visual.System import System
 from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
+from ..BeamStemSynthesizer import BeamStemSynthesizer
+from ...glyph.LineSynthesizer import LineSynthesizer
 from .Column import Column
 from .BarlinesColumn import synthesize_barlines_column
 from .ClefsColumn import synthesize_header_clefs
-from .NotesColumn import synthesize_notes_column
+from .NotesColumn import NotesColumn, synthesize_notes_column
 from typing import List
 import random
 
@@ -117,5 +119,22 @@ class ColumnLayoutSynthesizer:
         # TODO: DEBUG ONLY: place debug rectangles around columns
         # for column in state.columns:
         #     column.place_debug_boxes()
+
+        # === phase 2: beams and stems ===
+
+        # TODO: get paper_space as an argument
+        paper_space = staves[0].space.parent_space
+
+        line_synthesizer = LineSynthesizer()
+        beam_stem_synthesizer = BeamStemSynthesizer(line_synthesizer)
+
+        # TODO: DEBUG: just testing out the line synth
+        for column in state.columns:
+            if isinstance(column, NotesColumn):
+                for notehead_context in column.notehead_contexts:
+                    beam_stem_synthesizer.synthesize_stem(
+                        paper_space,
+                        notehead_context.notehead
+                    )
 
         return system

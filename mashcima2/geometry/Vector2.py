@@ -1,3 +1,6 @@
+import math
+
+
 class Vector2:
     """Mathematical 2D vector"""
 
@@ -20,6 +23,14 @@ class Vector2:
     @property
     def bottom(self) -> float:
         return self.y + self.height
+    
+    @property
+    def magnitude_squared(self) -> float:
+        return self.x * self.x + self.y * self.y
+    
+    @property
+    def magnitude(self) -> float:
+        return math.sqrt(self.magnitude_squared)
     
     def __repr__(self):
         return f"Vector2({self.x}, {self.y})"

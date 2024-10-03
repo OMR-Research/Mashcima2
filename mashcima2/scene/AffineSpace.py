@@ -20,3 +20,16 @@ class AffineSpace(SceneObject):
     """Transform that translates from this space's local coordinates
     to the parent's space coordinates, effectively defining the placement of
     this space within the parent space."""
+
+    def transform_from(self, sub_space: "AffineSpace") -> Transform:
+        """Returns the transform from the given space to the current space"""
+        t = Transform.identity()
+        
+        while sub_space is not None:
+            if sub_space is self:
+                return t
+            
+            t = t.then(sub_space.transform)
+            sub_space = sub_space.parent_space
+
+        raise Exception("The given sub space is not attached under this space")

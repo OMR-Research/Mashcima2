@@ -152,6 +152,7 @@ class NotesColumn(ColumnBase):
             notehead = ctx.notehead
             sl = ctx.stafflines
 
+            # TODO: take kick-off into account
             pitch_position = ctx.clef.pitch_to_pitch_position(ctx.note.pitch)
             notehead.space.transform = sl.staff_coordinate_system.get_transform(
                 pitch_position=pitch_position,
