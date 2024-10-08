@@ -1,19 +1,12 @@
 from mashcima2.scene.visual.Stafflines import Stafflines
-from mashcima2.scene.visual.Notehead import Notehead
-from mashcima2.scene.semantic.Staff import Staff
-from mashcima2.scene.semantic.Note import Note
 from mashcima2.scene.semantic.Score import Score
-from mashcima2.scene.semantic.ScoreEvent import ScoreEvent
-from mashcima2.scene.semantic.Event import Event
-from mashcima2.scene.semantic.Measure import Measure
-from mashcima2.scene.semantic.Part import Part
 from mashcima2.scene.visual.System import System
 from mashcima2.scene.visual.Page import Page
 from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
-from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from ..BeamStemSynthesizer import BeamStemSynthesizer
 from ...glyph.LineSynthesizer import LineSynthesizer
 from .Column import Column
+from .ColumnBase import ColumnBase
 from .BarlinesColumn import synthesize_barlines_column
 from .ClefsColumn import synthesize_header_clefs
 from .NotesColumn import NotesColumn, synthesize_notes_column
@@ -24,7 +17,10 @@ import random
 class SystemState:
     """Holds state while synthesizing a single system of music"""
 
-    def __init__(self):
+    def __init__(self, minimal_column_spacing: float):
+        self.minimal_column_spacing = minimal_column_spacing
+        "Minimum spacing inserted in between columns"
+        
         self.columns: List[Column] = []
         "List of columns in this system"
 
@@ -57,6 +53,9 @@ class SystemState:
     def append_column(self, column: Column):
         column.position_glyphs()
         
+        if len(self.columns) > 0:
+            self.total_width += self.minimal_column_spacing
+
         self.total_width += column.width
         self.columns.append(column)
 
@@ -73,9 +72,40 @@ class SystemState:
         self.measure_indices.remove(measure_index)
 
         for column in columns:
-            self.total_width -= column.width
+            self.total_width -= column.width + self.minimal_column_spacing
             self.columns.remove(column)
             column.detach()
+
+
+def place_columns_tightly(state: SystemState, minimal_column_spacing: float):
+    """Places columns from left to right with minimal spacing between them"""
+    time_position = 0
+    for column in state.columns:
+        column.time_position = time_position + column.left_width
+        column.position_glyphs()
+        time_position += column.width + minimal_column_spacing
+
+
+def place_columns_flexbox(
+    state: SystemState,
+    minimal_column_spacing: float,
+    available_width: float
+):
+    """Places columns stretched out to fill the staff width, like CSS flexbox"""
+    width_to_distribute = max(available_width - state.total_width, 0)
+    total_flex_grow = sum(c.flex_grow for c in state.columns)
+    width_unit = width_to_distribute / total_flex_grow
+
+    time_position = 0
+    for column in state.columns:
+        width_portion = width_unit * column.flex_grow
+        time_position += width_portion / 2
+        
+        column.time_position = time_position + column.left_width
+        column.position_glyphs()
+        time_position += column.width + minimal_column_spacing
+        
+        time_position += width_portion / 2
 
 
 # TODO: define a layout synthesizer interface and inherit
@@ -85,6 +115,15 @@ class ColumnLayoutSynthesizer:
     def __init__(self, glyph_synthesizer: GlyphSynthesizer, rng: random.Random):
         self.glyph_synthesizer = glyph_synthesizer
         self.rng = rng
+
+        self.minimal_column_spacing = 1.2
+        "Minimal spacing inserted between columns"
+
+        self.stretch_out_columns = True
+        "Whether to place columns tightly or to stretch them out to fill staff"
+
+        self.place_debug_rectangles = False
+        "Places column rectangles for debugging (to see the columns)"
 
     def fill_page(
         self,
@@ -143,7 +182,9 @@ class ColumnLayoutSynthesizer:
 
         # === phase 1: synthesizing columns ===
 
-        state = SystemState()
+        state = SystemState(
+            minimal_column_spacing=self.minimal_column_spacing
+        )
         available_width = min(sf.width for sf in staves)
 
         # synthesize header = start of the system signatures
@@ -198,23 +239,23 @@ class ColumnLayoutSynthesizer:
         while state.total_width >= available_width and state.measure_count > 1:
             state.delete_measure(state.measure_indices[-1])
 
-        # === phase 2: spacing out columns ===
+        # === phase 2: placing columns ===
 
-        # place columns side-by-side with fixed spacing
-        # SPACING = 3
-        SPACING = 0
-        time_position = 0
-        for column in state.columns:
-            column.time_position = time_position + column.left_width
-            column.position_glyphs()
-            time_position += column.width + SPACING
-        
-        # stretch-out columns to fill the remaining space
-        # TODO: ...
+        # tight or flexbox stretch
+        if self.stretch_out_columns:
+            place_columns_flexbox(
+                state,
+                self.minimal_column_spacing,
+                available_width
+            )
+        else:
+            place_columns_tightly(state, self.minimal_column_spacing)
 
-        # TODO: DEBUG ONLY: place debug rectangles around columns
-        # for column in state.columns:
-        #     column.place_debug_boxes()
+        # optionally place debugging boxes around columns
+        if self.place_debug_rectangles:
+            for column in state.columns:
+                if isinstance(column, ColumnBase):
+                    column.place_debug_boxes()
 
         # === phase 3: synthesizing beams and stems ===
 

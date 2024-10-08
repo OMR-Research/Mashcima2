@@ -76,7 +76,7 @@ class BitmapRenderer:
         # converts from scene millimeter coordinate system
         # to the canvas pixel coordinate system
         scene_to_canvas_transform = (
-            Transform.translate(view_box.rectangle.top_left_corner.vector)
+            Transform.translate(-view_box.rectangle.top_left_corner.vector)
                 .then(Transform.scale(mm_to_px(1, dpi=self.dpi)))
         )
 
