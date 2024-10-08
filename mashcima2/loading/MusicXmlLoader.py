@@ -16,8 +16,17 @@ from ..scene.semantic.Chord import Chord
 from ..scene.semantic.StemValue import StemValue
 from typing import List, TextIO, Optional
 from fractions import Fraction
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import io
+
+
+@dataclass
+class _ScoreState:
+    new_system_measures: List[Measure] = field(default_factory=list)
+    "Measures that should be placed on new systems (line breaks)"
+
+    new_page_measures: List[Measure] = field(default_factory=list)
+    "Measures that should be placed on new pages (page breaks)"
 
 
 @dataclass
@@ -76,7 +85,7 @@ class _MeasureState:
 
 IGNORED_MEASURE_ELEMENTS = set([
     # https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/measure-partwise/
-    "direction", "harmony", "figured-bass", "print", "sound", "listening",
+    "direction", "harmony", "figured-bass", "sound", "listening",
     "grouping", "link", "bookmark", "barline"
 ])
 
@@ -87,6 +96,9 @@ class MusicXmlLoader:
     def __init__(self, errout: Optional[TextIO] = None):
         self._errout = errout or io.StringIO()
         "Print errors and warnings here"
+
+        self._score_state: Optional[_ScoreState] = None
+        "Score state, not None when parsing a score"
         
         self._part_state: Optional[_PartState] = None
         "Part state, not None when parsing a part"
@@ -125,6 +137,8 @@ class MusicXmlLoader:
     def _load_score_partwise(self, score_partwise_element: ET.Element) -> Score:
         assert score_partwise_element.tag == "score-partwise"
 
+        self._score_state = _ScoreState()
+
         parts: List[Part] = []
 
         # go through all the parts
@@ -147,7 +161,22 @@ class MusicXmlLoader:
             part = self._load_part(score_part_element, part_element, part_id)
             parts.append(part)
 
-        return Score(parts=parts)
+        # create the part instance
+        score = Score(
+            parts=parts,
+            new_system_measure_indices=set(
+                Part.of_measure(m, fail_if_none=True).measures.index(m)
+                for m in self._score_state.new_system_measures
+            ),
+            new_page_measure_indices=set(
+                Part.of_measure(m, fail_if_none=True).measures.index(m)
+                for m in self._score_state.new_page_measures
+            )
+        )
+
+        self._score_state = None
+
+        return score
     
     def _load_part(
         self,
@@ -159,8 +188,6 @@ class MusicXmlLoader:
         assert part_element.tag == "part" # part measures
         assert score_part_element.attrib["id"] == part_id
         assert part_element.attrib["id"] == part_id
-
-        # TODO: should parse linebreaks and keep them in the part/score somehow
 
         self._part_state = _PartState(
             part_id=part_id,
@@ -199,6 +226,8 @@ class MusicXmlLoader:
                 self._load_backup(element)
             elif element.tag == "forward":
                 self._load_forward(element)
+            elif element.tag == "print":
+                self._load_print(element)
             else:
                 self._error(
                     "Unexpected <measure> element:",
@@ -567,3 +596,18 @@ class MusicXmlLoader:
 
         # modify measure state
         self._measure_state.seek_forward(fractional_duration)
+    
+    def _load_print(self, print_element: ET.Element):
+        assert print_element.tag == "print"
+
+        # parse line breaks
+        if print_element.attrib.get("new-system") == "yes":
+            self._score_state.new_system_measures.append(
+                self._measure_state.measure
+            )
+        
+        # parse page breaks
+        if print_element.attrib.get("new-page") == "yes":
+            self._score_state.new_page_measures.append(
+                self._measure_state.measure
+            )

@@ -25,6 +25,9 @@ class Column(abc.ABC):
         self.flex_grow = 1
         "How much does this column grow when stretched in relation to others"
 
+        self.flex_shrink = 1
+        "How much does this column get shrunk when the system is overflowing"
+
     @abc.abstractmethod
     def position_glyphs(self):
         """Called to place glyphs onto staves based on the current time_position"""

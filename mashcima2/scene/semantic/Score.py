@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from ..SceneObject import SceneObject
-from typing import List
+from typing import List, Set
 from .Part import Part
 from .ScoreMeasure import ScoreMeasure
 from .Event import Event
@@ -15,6 +15,12 @@ class Score(SceneObject):
     
     parts: List[Part]
     "List of parts that this score consists of"
+
+    new_system_measure_indices: Set[int] = field(default_factory=set)
+    "Indices of measures that should be placed on a new system (line breaks)"
+
+    new_page_measure_indices: Set[int] = field(default_factory=set)
+    "Indices of measures that should be placed on a new page (page breaks)"
 
     @property
     def staff_count(self) -> int:

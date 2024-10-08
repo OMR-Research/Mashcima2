@@ -14,7 +14,7 @@ from typing import List, Optional, Dict
 import random
 
 
-class SystemState:
+class _SystemState:
     """Holds state while synthesizing a single system of music"""
 
     def __init__(self, minimal_column_spacing: float):
@@ -77,7 +77,7 @@ class SystemState:
             column.detach()
 
 
-def place_columns_tightly(state: SystemState, minimal_column_spacing: float):
+def _place_columns_tightly(state: _SystemState, minimal_column_spacing: float):
     """Places columns from left to right with minimal spacing between them"""
     time_position = 0
     for column in state.columns:
@@ -86,15 +86,19 @@ def place_columns_tightly(state: SystemState, minimal_column_spacing: float):
         time_position += column.width + minimal_column_spacing
 
 
-def place_columns_flexbox(
-    state: SystemState,
+def _place_columns_flexbox(
+    state: _SystemState,
     minimal_column_spacing: float,
     available_width: float
 ):
     """Places columns stretched out to fill the staff width, like CSS flexbox"""
-    width_to_distribute = max(available_width - state.total_width, 0)
-    total_flex_grow = sum(c.flex_grow for c in state.columns)
-    width_unit = width_to_distribute / total_flex_grow
+    # can be negative when overflowing
+    width_to_distribute = available_width - state.total_width
+    if width_to_distribute >= 0:
+        total_flex = sum(c.flex_grow for c in state.columns)
+    else:
+        total_flex = sum(c.flex_shrink for c in state.columns)
+    width_unit = width_to_distribute / total_flex
 
     time_position = 0
     for column in state.columns:
@@ -116,6 +120,11 @@ class ColumnLayoutSynthesizer:
         self.glyph_synthesizer = glyph_synthesizer
         self.rng = rng
 
+        # The following values control the synthesizer.
+        # The page-flowing options are set to respect explicit breaks
+        # and ignore overflowing. This guarantees the same visual layout
+        # as the one encoded in the input MusicXML.
+
         self.minimal_column_spacing = 1.2
         "Minimal spacing inserted between columns"
 
@@ -124,6 +133,12 @@ class ColumnLayoutSynthesizer:
 
         self.place_debug_rectangles = False
         "Places column rectangles for debugging (to see the columns)"
+
+        self.respect_line_and_page_breaks = True
+        "If true, the layout respects the page formatting data of the score"
+
+        self.disable_wrapping = True
+        "When true, only linebreaks and page breaks control flow"
 
     def fill_page(
         self,
@@ -147,7 +162,10 @@ class ColumnLayoutSynthesizer:
                 break
 
             # or until we hit a page break
-            # TODO if ?: break
+            if self.respect_line_and_page_breaks \
+                    and not current_measure == start_on_measure:
+                if current_measure in score.new_page_measure_indices:
+                    break
 
             # synthesize a single system
             system = self.synthesize_system(
@@ -182,7 +200,7 @@ class ColumnLayoutSynthesizer:
 
         # === phase 1: synthesizing columns ===
 
-        state = SystemState(
+        state = _SystemState(
             minimal_column_spacing=self.minimal_column_spacing
         )
         available_width = min(sf.width for sf in staves)
@@ -196,16 +214,25 @@ class ColumnLayoutSynthesizer:
             )
         )
 
-        # synthesize measures until there is space left
+        # synthesize measures...
         next_measure_index = start_on_measure
-        while state.total_width < available_width:
+        while True:
+
+            # until there is space left
+            if not self.disable_wrapping:
+                if state.total_width < available_width:
+                    break
 
             # or until there are measures to synthesize
             if next_measure_index >= score.measure_count:
                 break
 
             # or until we hit a line break
-            # TODO if ?: break
+            if self.respect_line_and_page_breaks \
+                    and not next_measure_index == start_on_measure:
+                if next_measure_index in score.new_system_measure_indices \
+                        or next_measure_index in score.new_page_measure_indices:
+                    break
 
             state.enter_measure(next_measure_index)
             score_measure = score.get_score_measure(next_measure_index)
@@ -236,20 +263,22 @@ class ColumnLayoutSynthesizer:
 
         # remove measures from the end until we stop overflowing
         # (and we want at least one measure to reman no matter what)
-        while state.total_width >= available_width and state.measure_count > 1:
-            state.delete_measure(state.measure_indices[-1])
+        # (and only do that if we have wrapping enabled)
+        if not self.disable_wrapping:
+            while state.total_width >= available_width and state.measure_count > 1:
+                state.delete_measure(state.measure_indices[-1])
 
         # === phase 2: placing columns ===
 
         # tight or flexbox stretch
         if self.stretch_out_columns:
-            place_columns_flexbox(
+            _place_columns_flexbox(
                 state,
                 self.minimal_column_spacing,
                 available_width
             )
         else:
-            place_columns_tightly(state, self.minimal_column_spacing)
+            _place_columns_tightly(state, self.minimal_column_spacing)
 
         # optionally place debugging boxes around columns
         if self.place_debug_rectangles:
