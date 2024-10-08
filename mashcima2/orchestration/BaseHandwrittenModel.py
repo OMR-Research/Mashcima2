@@ -89,15 +89,18 @@ class BaseHandwrittenModel(Model):
         # already in scene
         self.scene.add_closure()
 
+        callbacks.trigger_on_sample_end()
+
+        return self.render(page_index=0)
+    
+    def render(self, page_index: int) -> np.ndarray:
         # render PNG (only first page)
-        renderer = BitmapRenderer(dpi=150) # TODO: DPI reduced for speed...
-        bitmap = renderer.render(self.scene, self.pages[0].view_box)
+        renderer = BitmapRenderer()
+        bitmap = renderer.render(self.scene, self.pages[page_index].view_box)
 
         # add white background
         # TODO: synthesize background
         mask = bitmap[:, :, 3] == 0
         bitmap[mask, :] = 255
-
-        callbacks.trigger_on_sample_end()
 
         return bitmap

@@ -1,6 +1,9 @@
 import numpy as np
 import cv2
+from math import ceil
 from mashcima2.geometry.Transform import Transform
+from mashcima2.geometry.Rectangle import Rectangle
+from mashcima2.geometry.Quad import Quad
 from ..scene.Scene import Scene
 from ..scene.ViewBox import ViewBox
 from ..geometry.units import mm_to_px
@@ -15,6 +18,23 @@ def _premultiplied_float32_alpha_overlay(canvas: np.ndarray, layer: np.ndarray):
     factor = (1 - layer[:, :, 3:4])
     canvas *= factor
     canvas += layer
+
+
+def _premultiplied_float32_alpha_overlay_in_window(
+    canvas: np.ndarray,
+    window: Rectangle,
+    layer: np.ndarray
+):
+    assert int(window.height) == layer.shape[0]
+    assert int(window.width) == layer.shape[1]
+    top = int(window.top)
+    bottom = int(window.bottom)
+    left = int(window.left)
+    right = int(window.right)
+    _premultiplied_float32_alpha_overlay(
+        canvas[top:bottom, left:right],
+        layer
+    )
 
 
 def _uint8_to_float32(img: np.ndarray) -> np.ndarray:
@@ -39,12 +59,17 @@ class BitmapRenderer:
         "DPI at which the scene should be rasterized"
 
     def render(self, scene: Scene, view_box: ViewBox) -> np.ndarray:
-        canvas_width = int(mm_to_px(view_box.rectangle.width, dpi=self.dpi))
-        canvas_height = int(mm_to_px(view_box.rectangle.height, dpi=self.dpi))
+        # bounding box of the canvas in pixel space
+        canvas_px_bbox = Rectangle(
+            x=0,
+            y=0,
+            width=ceil(mm_to_px(view_box.rectangle.width, dpi=self.dpi)),
+            height=ceil(mm_to_px(view_box.rectangle.height, dpi=self.dpi)),
+        )
 
-        # in alpha premultiplied float32 format
+        # the canvas pixel array in alpha premultiplied float32 format
         canvas = np.zeros(
-            shape=(canvas_height, canvas_width, 4),
+            shape=(int(canvas_px_bbox.height), int(canvas_px_bbox.width), 4),
             dtype=np.float32
         )
 
@@ -55,6 +80,7 @@ class BitmapRenderer:
                 .then(Transform.scale(mm_to_px(1, dpi=self.dpi)))
         )
 
+        # go through all the sprites in the scene
         for (sprite, sprite_transform) in traverse_sprites(
             scene.space,
             include_pixels_transform=True,
@@ -63,26 +89,54 @@ class BitmapRenderer:
         ):
             # build up a transform that converts from sprite's local pixel space
             # to canvas global pixel space, while going through the scene space
-            complete_transform = (
+            to_canvas_transform = (
                 sprite_transform # recursive scene hierarchy transforms
                 .then(scene_to_canvas_transform)
             )
             
-            # TODO: this is awful slow... needs to map only the neighborhood
-            # of the sprite, not the whole canvas (consider interpolation blur!)
+            # get the window in the canvas that we're going to paint over
+            canvas_window: Rectangle = (
+                to_canvas_transform.apply_to(
+                    Quad.from_rectangle(
+                        sprite.pixels_bbox.dilate(1.0) # grow by 1 pixel
+                        # dilation is done to accommodate the aliasing blur
+                    )
+                ) # get the quad of the dilated sprite quad in canvas coordinates
+                .bbox() # get the bounding box rectangle
+                .snap_grow() # round to integer by growing
+                .intersect_with(canvas_px_bbox) # clamp inside of canvas
+            )
+            to_window_transform = to_canvas_transform.then(
+                Transform.translate(-canvas_window.top_left_corner.vector)
+            )
+
+            # viewport culling:
+            # do not render sprites that have no overlap with the canvas
+            if canvas_window.has_no_area:
+                continue
+            
+            # prepare the sprite bitmap into mRGBA float
             sprite_bitmap = sprite.bitmap
             sprite_bitmap = cv2.cvtColor(sprite_bitmap, cv2.COLOR_RGBA2mRGBA)
             sprite_bitmap = _uint8_to_float32(sprite_bitmap)
+
+            # get the transformed bitmap of the sprite
             new_layer = cv2.warpAffine(
                 src=sprite_bitmap,
-                M=complete_transform.matrix,
-                dsize=(canvas_width, canvas_height),
-                # flags=cv2.INTER_AREA, # use for decimation (downscaling)
-                flags=cv2.INTER_LINEAR, # use for upscaling
+                M=to_window_transform.matrix,
+                dsize=(int(canvas_window.width), int(canvas_window.height)),
+                flags=(
+                    cv2.INTER_AREA # used for downscaling
+                    if to_window_transform.determinant < 1.0
+                    else cv2.INTER_LINEAR # used for upscaling
+                ),
                 borderMode=cv2.BORDER_CONSTANT
             )
-            # TODO: specify proper interpolation (say, based on the determinant)
-            _premultiplied_float32_alpha_overlay(canvas, new_layer)
+
+            # composit the next layer over the canvas in the window
+            _premultiplied_float32_alpha_overlay_in_window(
+                canvas, canvas_window, new_layer
+            )
 
         # convert to uint8 RGBA (BGRA actually) and return
         canvas = _float32_to_uint8(canvas)

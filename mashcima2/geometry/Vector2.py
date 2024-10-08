@@ -47,6 +47,9 @@ class Vector2:
         else:
             raise ValueError("Vectors can only be subtracted from other vectors")
     
+    def __neg__(self):
+        return Vector2(-self.x, -self.y)
+
     def __mul__(self, other):
         if isinstance(other, float) or isinstance(other, int):
             return Vector2(self.x * other, self.y * other)

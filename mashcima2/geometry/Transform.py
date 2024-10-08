@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 from .Vector2 import Vector2
+from .Point import Point
+from .Quad import Quad
 from typing import TypeVar
 
 
@@ -33,6 +35,16 @@ class Transform:
             axis=0
         )
     
+    @property
+    def matrix2(self) -> np.ndarray:
+        """The 2x2 matrix that ignores translation"""
+        return self.matrix[0:2, 0:2]
+    
+    @property
+    def determinant(self) -> float:
+        """Returns the determinant of the affine transformation"""
+        return np.linalg.det(self.matrix2)
+    
     def apply_to(self, other: T) -> T:
         """Transform a vector or another transformation"""
         m = self.matrix3
@@ -44,6 +56,12 @@ class Transform:
             o = np.array([[other.x], [other.y], [1]], dtype=np.float64)
             r = m.dot(o)
             return Vector2(r[0, 0], r[1, 0])
+        elif isinstance(other, Point):
+            v = self.apply_to(other.vector)
+            return Point(v.x, v.y)
+        elif isinstance(other, Quad):
+            pts = [self.apply_to(p) for p in other.points]
+            return Quad(*pts)
         else:
             raise ValueError("Transform applied to an unexpected type")
     

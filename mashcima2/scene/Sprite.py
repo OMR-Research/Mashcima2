@@ -60,6 +60,12 @@ class Sprite(SceneObject):
     def physical_height(self) -> float:
         return px_to_mm(self.pixel_height, dpi=self.dpi)
     
+    @property
+    def pixels_bbox(self) -> Rectangle:
+        """Returns the bounding box rectangle of the sprite in its pixel
+        space - that is (0, 0, px_width, px_height)"""
+        return Rectangle(0, 0, self.pixel_width, self.pixel_height)
+    
     def get_pixels_to_scene_transform(self) -> Transform:
         """Returns a transform that converts from local pixel space
         to local scene space (excluding the sprite transform property)"""
@@ -83,7 +89,11 @@ class Sprite(SceneObject):
         """Creates a rectangular box image sprite with the desired properties"""
         pixel_width = int(mm_to_px(rectangle.width, dpi=dpi))
         pixel_height = int(mm_to_px(rectangle.height, dpi=dpi))
-        border_width_px = int(mm_to_px(border_width, dpi=dpi))
+        border_width_px = int(round(mm_to_px(border_width, dpi=dpi)))
+
+        # border is at least 1 px if width is non-zero
+        if border_width > 0 and border_width_px == 0:
+            border_width_px = 1
 
         bitmap = np.zeros(
             shape=(pixel_height, pixel_width, 4),
@@ -94,10 +104,11 @@ class Sprite(SceneObject):
         bitmap[:,:] = fill_color
 
         # paint border
-        bitmap[:border_width_px, :] = border_color
-        bitmap[-border_width_px:, :] = border_color
-        bitmap[:, :border_width_px] = border_color
-        bitmap[:, -border_width_px:] = border_color
+        if border_width_px > 0:
+            bitmap[:border_width_px, :] = border_color
+            bitmap[-border_width_px:, :] = border_color
+            bitmap[:, :border_width_px] = border_color
+            bitmap[:, -border_width_px:] = border_color
 
         # create the sprite instance
         sprite = Sprite(
