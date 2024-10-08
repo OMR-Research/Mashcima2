@@ -31,3 +31,8 @@ class Column(abc.ABC):
     def recalculate_dimensions(self):
         """Should be called at the end of glyph positioning to update width values"""
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def detach(self):
+        """Removes the column from the scene"""
+        raise NotImplementedError

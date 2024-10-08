@@ -61,6 +61,8 @@ class SceneObject:
             for item in value:
                 if isinstance(item, SceneObject):
                     Link(source=self, target=item, name=name).attach()
+        else:
+            self._destroy_outlinks_for(name)
 
         super().__setattr__(name, value)
     

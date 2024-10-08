@@ -32,13 +32,19 @@ class NaiveStaffCoordinateSystem(StaffCoordinateSystem):
 
 class NaiveStafflinesSynthesizer(StafflinesSynthesizer):
     """Simple stafflines synthesizer that just creates straight stafflines"""
-    def synthesize(
+    def __init__(self):
+        self.staff_space: float = MUSCIMA_STAFF_SPACE
+        self.line_width: float = MUSCIMA_LINE_WIDTH
+
+    @property
+    def stafflines_height(self) -> float:
+        return self.staff_space * 4
+    
+    def synthesize_stafflines(
         self,
         parent_space: AffineSpace,
         position: Vector2,
-        width: float,
-        staff_space: float = MUSCIMA_STAFF_SPACE,
-        line_width: float = MUSCIMA_LINE_WIDTH
+        width: float
     ) -> Stafflines:
         local_space = AffineSpace(
             parent_space=parent_space,
@@ -49,9 +55,9 @@ class NaiveStafflinesSynthesizer(StafflinesSynthesizer):
                 local_space,
                 Rectangle(
                     x=0,
-                    y=i * staff_space - line_width / 2,
+                    y=i * self.staff_space - self.line_width / 2,
                     width=width,
-                    height=line_width
+                    height=self.line_width
                 ),
                 fill_color=(0, 0, 0, 255),
                 dpi=300
@@ -59,9 +65,10 @@ class NaiveStafflinesSynthesizer(StafflinesSynthesizer):
             for i in range(-2, 3)
         ]
         return Stafflines(
+            width=width,
             space=local_space,
             sprites=sprites,
             staff_coordinate_system=NaiveStaffCoordinateSystem(
-                staff_space=staff_space
+                staff_space=self.staff_space
             )
         )

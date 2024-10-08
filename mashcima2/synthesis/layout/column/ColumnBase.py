@@ -108,6 +108,10 @@ class ColumnBase(Column, metaclass=abc.ABCMeta):
             self.left_width = -min(p.x for p in points)
             self.right_width = max(p.x for p in points)
             self.width = self.left_width + self.right_width
+    
+    def detach(self):
+        for glyph in self.glyphs:
+            glyph.space.parent_space = None
 
     def place_debug_boxes(self):
         """For debugging purposes - places sprites that visualize the column"""

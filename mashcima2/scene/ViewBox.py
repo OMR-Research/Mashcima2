@@ -3,6 +3,8 @@ from .SceneObject import SceneObject
 
 
 class ViewBox(SceneObject):
+    """Viewport into the scene, always denoted in the global scene space"""
+
     def __init__(self, rectangle: Rectangle):
         super().__init__()
 

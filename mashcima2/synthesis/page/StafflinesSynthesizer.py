@@ -9,8 +9,14 @@ class StafflinesSynthesizer(abc.ABC):
     Interface for a stafflines synthesizer
     """
 
+    @property
     @abc.abstractmethod
-    def synthesize(
+    def stafflines_height(self) -> float:
+        """Returns the height of synthesized stafflines in millimeters"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def synthesize_stafflines(
         self,
         parent_space: AffineSpace,
         position: Vector2,

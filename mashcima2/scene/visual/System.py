@@ -9,4 +9,14 @@ class System(SceneObject):
     side by side. It's a collection of staves and measures. It's a visual
     object and does not exist in the musical semantics.
     """
-    pass
+    
+    first_measure_index: int
+    "What is the index of the first measure on the system (relative to score)"
+
+    measure_count: int
+    "Number of measures on this system"
+
+    @property
+    def last_measure_index(self) -> int:
+        """Returns index of the last measure in the system (relative to score)"""
+        return self.first_measure_index + self.measure_count

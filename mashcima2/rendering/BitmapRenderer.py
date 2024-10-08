@@ -38,11 +38,7 @@ class BitmapRenderer:
         self.dpi = float(dpi)
         "DPI at which the scene should be rasterized"
 
-    def render(self, scene: Scene) -> np.ndarray:
-        view_boxes = scene.find(ViewBox)
-        assert len(view_boxes) == 1
-        view_box = view_boxes[0]
-
+    def render(self, scene: Scene, view_box: ViewBox) -> np.ndarray:
         canvas_width = int(mm_to_px(view_box.rectangle.width, dpi=self.dpi))
         canvas_height = int(mm_to_px(view_box.rectangle.height, dpi=self.dpi))
 

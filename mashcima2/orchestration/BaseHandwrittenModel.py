@@ -1,6 +1,4 @@
 from .Model import Model
-from ..scene.ViewBox import ViewBox
-from ..geometry.Rectangle import Rectangle
 from ..geometry.Vector2 import Vector2
 from ..loading.MusicXmlLoader import MusicXmlLoader
 from ..synthesis.page.NaiveStafflinesSynthesizer \
@@ -11,7 +9,8 @@ from ..synthesis.layout.column.ColumnLayoutSynthesizer \
 from ..rendering.BitmapRenderer import BitmapRenderer
 from ..synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from ..synthesis.glyph.MuscimaPPGlyphSynthesizer import MuscimaPPGlyphSynthesizer
-from mashcima2.scene.visual.Stafflines import Stafflines
+from mashcima2.synthesis.page.SimplePageSynthesizer import SimplePageSynthesizer
+from mashcima2.scene.visual.Page import Page
 from .CallbackTrigger import CallbackTrigger
 import numpy as np
 from typing import List
@@ -27,6 +26,7 @@ class BaseHandwrittenModel(Model):
     def __init__(self):
         super().__init__()
 
+        # define default sub-synthesizers to be used by this model
         self.container.type(ColumnLayoutSynthesizer)
         self.container.interface(
             StafflinesSynthesizer,
@@ -36,6 +36,10 @@ class BaseHandwrittenModel(Model):
             GlyphSynthesizer,
             MuscimaPPGlyphSynthesizer
         )
+        self.container.type(SimplePageSynthesizer)
+
+        self.pages: List[Page] = []
+        "Pages that will be synthesized during model invocation"
 
     def __call__(self, annotation_file_path: str) -> np.ndarray:
         return super().__call__(annotation_file_path)
@@ -44,42 +48,50 @@ class BaseHandwrittenModel(Model):
         # resolve services
         # (must be done first so that callback handlers are registered)
         callbacks = self.container.resolve(CallbackTrigger)
-        stafflines_synthesizer = self.container.resolve(StafflinesSynthesizer)
         layout_synthesizer = self.container.resolve(ColumnLayoutSynthesizer)
+        page_synthesizer = self.container.resolve(SimplePageSynthesizer)
 
         # start the synthesis
         callbacks.trigger_on_sample_begin()
-
-        # A4 paper portrait, mm
-        self.scene.add(ViewBox(Rectangle(0, 0, 210, 297)))
 
         # load the symbolic part
         score = MusicXmlLoader().load_file(annotation_file_path)
         self.scene.add(score)
 
-        # synthesize stafflines
-        staves: List[Stafflines] = []
-        for i in range(6):
-            stafflines = stafflines_synthesizer.synthesize(
-                self.scene.space, Vector2(10, 30 + i * 24), 180
+        # until you run out of music
+        # 1. synthesize a page of stafflines
+        # 2. fill the page with music
+        self.pages = []
+        next_measure_index = 0
+        next_page_origin = Vector2(0, 0)
+        _PAGE_SPACING = 10 # 1cm
+        while next_measure_index < score.measure_count:
+            # prepare the next page of music
+            page = page_synthesizer.synthesize_page(next_page_origin)
+            page.space.parent_space = self.scene.space
+            self.scene.add(page)
+            self.pages.append(page)
+
+            next_page_origin += Vector2(
+                page.view_box.rectangle.width + _PAGE_SPACING,
+                0
             )
-            staves.append(stafflines)
-        
-        # synthesize layout
-        # layout_synthesizer.synthesize(stafflines, staff)
-        layout_synthesizer.synthesize_system(
-            staves=staves[0:score.staff_count],
-            score=score,
-            start_on_measure=0
-        )
-        
+
+            # synthesize music onto the page
+            systems = layout_synthesizer.fill_page(
+                page,
+                score,
+                start_on_measure=next_measure_index
+            )
+            next_measure_index = systems[-1].last_measure_index + 1
+
         # add objects to scene that are transitively linked from objects
         # already in scene
         self.scene.add_closure()
 
-        # render PNG
+        # render PNG (only first page)
         renderer = BitmapRenderer(dpi=150) # TODO: DPI reduced for speed...
-        bitmap = renderer.render(self.scene)
+        bitmap = renderer.render(self.scene, self.pages[0].view_box)
 
         # add white background
         # TODO: synthesize background

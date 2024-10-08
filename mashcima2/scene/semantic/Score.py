@@ -19,7 +19,14 @@ class Score(SceneObject):
     @property
     def staff_count(self) -> int:
         """How many staves does a single system have"""
+        assert len(self.parts) > 0, "There are no parts in the score"
         return sum(p.staff_count for p in self.parts)
+    
+    @property
+    def measure_count(self) -> int:
+        """How many measures does the score have in total"""
+        assert len(self.parts) > 0, "There are no parts in the score"
+        return len(self.parts[0].measures)
     
     def first_staff_index_of_part(self, part: Part) -> int:
         """Given a part returns the staff index (zero-based) of the first staff
