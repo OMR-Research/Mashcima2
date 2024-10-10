@@ -332,7 +332,7 @@ class MusicXmlLoader:
         
         # TODO: <accidental>
         
-        # TODO: <stem>
+        # <stem>
         def _stem() -> StemValue:
             stem_element = note_element.find("stem")
             if stem_element is None:
@@ -355,7 +355,7 @@ class MusicXmlLoader:
                 "Staff number must not exceed the defined staff count"
             return staff
 
-        # TODO: <beam>
+        # <beam>
         def _beam() -> Dict[int, BeamValue]:
             values = {}
             for element in note_element.findall("beam"):

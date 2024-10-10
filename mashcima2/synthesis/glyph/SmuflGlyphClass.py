@@ -47,6 +47,10 @@ class SmuflGlyphClass(str, Enum):
     # ...
     augmentationDot = "smulf::augmentationDot"
 
+    # Stems
+    # https://w3c.github.io/smufl/latest/tables/stems.html
+    stem = "smufl::stem"
+
     # Rests
     # https://www.w3.org/2019/03/smufl13/tables/rests.html
     restMaxima = "smulf::restMaxima"

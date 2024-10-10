@@ -2,6 +2,7 @@ from mashcima2.scene.visual.Stafflines import Stafflines
 from mashcima2.scene.semantic.Staff import Staff
 from mashcima2.scene.semantic.Note import Note
 from mashcima2.scene.semantic.Rest import Rest
+from mashcima2.scene.semantic.BeamedGroup import BeamedGroup
 from mashcima2.scene.semantic.ScoreMeasure import ScoreMeasure
 from mashcima2.scene.semantic.Part import Part
 from mashcima2.scene.semantic.Chord import Chord
@@ -10,11 +11,16 @@ from mashcima2.scene.semantic.StemValue import StemValue
 from mashcima2.scene.AffineSpace import AffineSpace
 from mashcima2.scene.Sprite import Sprite
 from mashcima2.scene.visual.Notehead import Notehead
+from mashcima2.scene.visual.Stem import Stem
+from mashcima2.scene.visual.LineGlyph import LineGlyph
 from mashcima2.geometry.Transform import Transform
 from mashcima2.geometry.Rectangle import Rectangle
 from mashcima2.geometry.Vector2 import Vector2
 from mashcima2.geometry.Point import Point
 from mashcima2.synthesis.glyph.LineSynthesizer import LineSynthesizer
+from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
+from mashcima2.synthesis.glyph.SmashcimaGlyphClass import SmashcimaGlyphClass
+from typing import List
 
 
 class BeamStemSynthesizer:
@@ -26,28 +32,36 @@ class BeamStemSynthesizer:
         paper_space: AffineSpace,
         score_measure: ScoreMeasure
     ):
-        # get all chords
-        chords = []
+        # get all chords and beamed groups
+        chords: List[Chord] = []
+        groups: List[BeamedGroup] = []
+
         for score_event in score_measure.events:
             for event in score_event.events:
                 for durable in event.durables:
-                    if isinstance(durable, Note):
-                        chord = Chord.of_note(durable)
-                        if chord is None:
-                            continue
-                        if chord not in chords:
-                            chords.append(chord)
+
+                    if not isinstance(durable, Note):
+                        continue
+
+                    chord = Chord.of_note(durable)
+                    if chord is not None and chord not in chords:
+                        chords.append(chord)
+                    
+                    group = BeamedGroup.of_chord(chord)
+                    if group is not None and group not in groups:
+                        groups.append(group)
         
         # synthesize stems for all chords
         for chord in chords:
             self.synthesize_stem(paper_space, chord)
 
-        # get all beamed groups
-        # ...
-
         # synthesize beam for each beamed group
+        for group in groups:
+            self.synthesize_beams(paper_space, group)
 
         # adjust stems for beamed groups
+        for group in groups:
+            self.adjust_stems_for_beam_group(group)
 
     # def synthesize_beams(self, noteheads: Notehead):
     #     pass
@@ -74,11 +88,15 @@ class BeamStemSynthesizer:
         stem_tip = self.get_stem_tip_point(stem_base, stem_value)
 
         # synthesize the stem glyph
+        stem = Stem(
+            glyph_class=SmuflGlyphClass.stem.value,
+            space=AffineSpace(parent_space=paper_space),
+            chord=chord
+        )
         self.line_synthesizer.synthesize_line(
-            parent_space=paper_space,
+            glyph=stem,
             start_point=stem_base,
-            end_point=stem_tip,
-            glyph_class="dummy-line"
+            end_point=stem_tip
         )
     
     def infer_stem_orientation(self, chord: Chord) -> StemValue:
@@ -123,3 +141,26 @@ class BeamStemSynthesizer:
             delta_vector = -delta_vector
         
         return Point.from_origin_vector(base_point.vector + delta_vector)
+
+    def synthesize_beams(self, paper_space: AffineSpace, group: BeamedGroup):
+        # TODO: do a proper synth
+        start = Stem.of_chord(group.chords[0], fail_if_none=True)
+        end = Stem.of_chord(group.chords[-1], fail_if_none=True)
+
+        beam = LineGlyph(
+            glyph_class=SmashcimaGlyphClass.beam.value,
+            space=AffineSpace(parent_space=paper_space)
+        )
+        self.line_synthesizer.synthesize_line(
+            glyph=beam,
+            start_point=paper_space.transform_from(start.space).apply_to(
+                start.tip
+            ),
+            end_point=paper_space.transform_from(end.space).apply_to(
+                end.tip
+            ),
+        )
+
+    def adjust_stems_for_beam_group(self, group: BeamedGroup):
+        # TODO ...
+        pass

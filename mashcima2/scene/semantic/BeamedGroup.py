@@ -21,6 +21,18 @@ class BeamedGroup(SceneObject):
     beam_values: List[Dict[int, BeamValue]] = field(default_factory=list)
     """For each chord there is a dictionary, mapping beam numers to beam values"""
 
+    @staticmethod
+    def of_chord(
+        chord: Chord,
+        fail_if_none=False
+    ) -> Optional["BeamedGroup"] | "BeamedGroup":
+        return chord.get_inlinked(
+            BeamedGroup,
+            nameof_via_dummy(BeamedGroup, lambda g: g.chords),
+            at_most_one=True,
+            fail_if_none=fail_if_none
+        )
+
     def add_chord(self, chord: Chord, beam_values: Dict[int, BeamValue]):
         """Adds a new chord into the beamed group"""
         assert chord not in self.chords, \
