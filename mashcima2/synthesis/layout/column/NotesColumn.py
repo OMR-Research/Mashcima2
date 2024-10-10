@@ -204,7 +204,8 @@ def synthesize_notes_column(
 
                 # another note for an existing notehead
                 if linear_pitch in linear_pitch_to_notehead:
-                    linear_pitch_to_notehead[linear_pitch].notes.append(note)
+                    notehead = linear_pitch_to_notehead[linear_pitch]
+                    notehead.notes = [*notehead.notes, note]
                     continue
                 
                 # new notehead for a note

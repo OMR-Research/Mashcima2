@@ -14,7 +14,9 @@ from ..scene.semantic.ClefSign import ClefSign
 from ..scene.semantic.TimeSignature import TimeSignature, TimeSymbol
 from ..scene.semantic.Chord import Chord
 from ..scene.semantic.StemValue import StemValue
-from typing import List, TextIO, Optional
+from ..scene.semantic.BeamedGroup import BeamedGroup
+from ..scene.semantic.BeamValue import BeamValue
+from typing import List, TextIO, Optional, Dict
 from fractions import Fraction
 from dataclasses import dataclass, field
 import io
@@ -70,6 +72,9 @@ class _MeasureState:
 
     fractional_measure_onset: Fraction = Fraction(0, 1) # zero
     """How many quarter notes from the start of the measure are we currently"""
+
+    current_beamed_group: Optional[BeamedGroup] = None
+    "The beamed group that is currently being constructed."
 
     def seek_forward(self, fractional_duration: Fraction):
         self.fractional_measure_onset += fractional_duration
@@ -328,10 +333,10 @@ class MusicXmlLoader:
         # TODO: <accidental>
         
         # TODO: <stem>
-        def _stem() -> Optional[StemValue]:
+        def _stem() -> StemValue:
             stem_element = note_element.find("stem")
             if stem_element is None:
-                return None
+                return StemValue.none
             if stem_element.text not in ["up", "down", "double", "none"]:
                 self._error(
                     f"Unknown stem type '{stem_element.text}'.",
@@ -351,6 +356,14 @@ class MusicXmlLoader:
             return staff
 
         # TODO: <beam>
+        def _beam() -> Dict[int, BeamValue]:
+            values = {}
+            for element in note_element.findall("beam"):
+                v = BeamValue(element.text)
+                n = int(element.attrib.get("number"))
+                values[n] = v
+            return values
+
         # TODO: <tied>
         # TODO: <tuplet>
         
@@ -366,6 +379,7 @@ class MusicXmlLoader:
         duration_dots = _dot()
         stem_value = _stem()
         staff_number = _staff()
+        beam_values = _beam()
         
         fractional_duration = self._part_state.measure_fractional_duration \
             if is_measure_rest \
@@ -397,6 +411,18 @@ class MusicXmlLoader:
             else: # start a new chord
                 current_chord = Chord()
         self._measure_state.last_chord = current_chord # update state
+
+        # load beam information
+        # (only the first note in a chord has this information,
+        # others don't repeat it, unlike with stems)
+        if len(beam_values) > 0:
+            if self._measure_state.current_beamed_group is None:
+                self._measure_state.current_beamed_group = BeamedGroup()
+            self._measure_state.current_beamed_group.add_chord(
+                current_chord, beam_values
+            )
+            if self._measure_state.current_beamed_group.is_complete:
+                self._measure_state.current_beamed_group = None
 
         # handle measure rests
         if is_measure_rest:

@@ -3,8 +3,9 @@ from mashcima2.scene.semantic.Staff import Staff
 from mashcima2.scene.semantic.Note import Note
 from mashcima2.scene.semantic.Rest import Rest
 from mashcima2.scene.semantic.ScoreMeasure import ScoreMeasure
-from mashcima2.scene.semantic.Score import Score
+from mashcima2.scene.semantic.Part import Part
 from mashcima2.scene.semantic.Chord import Chord
+from mashcima2.scene.semantic.Measure import Measure
 from mashcima2.scene.semantic.StemValue import StemValue
 from mashcima2.scene.AffineSpace import AffineSpace
 from mashcima2.scene.Sprite import Sprite
@@ -57,9 +58,13 @@ class BeamStemSynthesizer:
 
         # get stem orientation
         stem_value = chord.stem_value or self.infer_stem_orientation(chord)
-        assert stem_value in [StemValue.up, StemValue.down], \
+        assert stem_value in [StemValue.none, StemValue.up, StemValue.down], \
             f"Invalid stem value {stem_value}, must be only up or down."
         
+        # if no stem, do not render one
+        if stem_value == StemValue.none:
+            return
+
         # get both stem points
         # TODO: get a cloud of base points and aggregate to the one base point
         transform = paper_space.transform_from(notehead.space)
@@ -79,9 +84,15 @@ class BeamStemSynthesizer:
     def infer_stem_orientation(self, chord: Chord) -> StemValue:
         # NOTE: could be implemented in the future,
         # or can be subclassed and overriden by the user
+        event = chord.get_event()
+        onset = event.fractional_measure_onset
+        measure = Measure.of_event(event, fail_if_none=True)
+        part = Part.of_measure(measure, fail_if_none=True)
+        measure_index = part.measures.index(measure)
         raise NotImplementedError(
             "Stem orientation inference is not supported. " + \
-            "Provide explicit stem orientation in the scene semantic data."
+            "Provide explicit stem orientation in the scene semantic data. " + \
+            f"Measure index: {measure_index}, onset: {onset}"
         )
 
     def get_stem_base_point(
