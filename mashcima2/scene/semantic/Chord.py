@@ -30,13 +30,18 @@ class Chord(SceneObject):
             fail_if_none=fail_if_none
         )
     
-    def add_note(self, note: Note, stem_value: StemValue):
+    def add_note(self, note: Note, stem_value: StemValue = None):
         """Adds a note into the chord with a stem value"""
-        if self.stem_value is not None:
+        # store stem value if missing
+        if self.stem_value is None:
+            self.stem_value = stem_value
+
+        # validate stem value if present
+        if self.stem_value is not None and stem_value is not None:
             assert self.stem_value == stem_value, \
                 "All notes in a chord must have the same stem value"
         
+        # update the list of notes
         notes = [*self.notes, note]
         notes.sort(key=lambda n: n.pitch.get_linear_pitch()) # ascending by pitch
         self.notes = notes
-    

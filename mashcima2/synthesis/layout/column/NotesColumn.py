@@ -215,7 +215,7 @@ def synthesize_notes_column(
                     expected_glyph_type=Notehead
                 )
                 notehead.space.parent_space = stafflines.space
-                notehead.notes.append(note)
+                notehead.notes = [*notehead.notes, note]
                 linear_pitch_to_notehead[linear_pitch] = notehead
     
     # add noteheads to the column

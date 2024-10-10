@@ -286,7 +286,16 @@ class ColumnLayoutSynthesizer:
                 if isinstance(column, ColumnBase):
                     column.place_debug_boxes()
 
-        # === phase 3: synthesizing beams and stems ===
+        # === phase 3: construct the system object ===
+
+        # TODO: create layout bboxes and add them to the system
+
+        system = System(
+            first_measure_index=start_on_measure,
+            measure_count=state.measure_count
+        )
+
+        # === phase 4: synthesizing beams and stems ===
 
         # TODO: get paper_space as an argument
         paper_space = staves[0].space.parent_space
@@ -294,16 +303,22 @@ class ColumnLayoutSynthesizer:
         line_synthesizer = LineSynthesizer()
         beam_stem_synthesizer = BeamStemSynthesizer(line_synthesizer)
 
-        # TODO: DEBUG: just testing out the line synth
-        for column in state.columns:
-            if isinstance(column, NotesColumn):
-                for notehead_context in column.notehead_contexts:
-                    beam_stem_synthesizer.synthesize_stem(
-                        paper_space,
-                        notehead_context.notehead
-                    )
+        for i in range(system.measure_count):
+            score_measure = score.get_score_measure(
+                system.first_measure_index + i
+            )
+            beam_stem_synthesizer.synthesize_beams_and_stems_for_measure(
+                paper_space,
+                score_measure
+            )
 
-        return System(
-            first_measure_index=start_on_measure,
-            measure_count=state.measure_count
-        )
+        # TODO: DEBUG: just testing out the line synth
+        # for column in state.columns:
+        #     if isinstance(column, NotesColumn):
+        #         for notehead_context in column.notehead_contexts:
+        #             beam_stem_synthesizer.synthesize_stem(
+        #                 paper_space,
+        #                 notehead_context.notehead
+        #             )
+
+        return system

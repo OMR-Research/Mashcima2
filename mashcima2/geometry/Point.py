@@ -29,3 +29,6 @@ class Point:
     
     def __repr__(self):
         return f"Point({self.x}, {self.y})"
+    
+    def __neg__(self):
+        return Point(-self.x, -self.y)
