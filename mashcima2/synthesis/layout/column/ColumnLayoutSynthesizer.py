@@ -301,7 +301,7 @@ class ColumnLayoutSynthesizer:
         paper_space = staves[0].space.parent_space
 
         line_synthesizer = LineSynthesizer()
-        beam_stem_synthesizer = BeamStemSynthesizer(line_synthesizer)
+        beam_stem_synthesizer = BeamStemSynthesizer(line_synthesizer, self.rng)
 
         for i in range(system.measure_count):
             score_measure = score.get_score_measure(

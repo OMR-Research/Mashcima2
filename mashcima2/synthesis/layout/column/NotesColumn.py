@@ -12,7 +12,7 @@ from mashcima2.scene.visual.RestGlyph import RestGlyph
 from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from .ColumnBase import ColumnBase
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 import random
 
@@ -191,20 +191,30 @@ def synthesize_notes_column(
 
     # === noteheads ===
 
-    linear_pitch_to_notehead: Dict[int, Notehead] = dict()
+    # notehead merging logic
+    # (when two voices share a notehead)
+    _all_noteheads: Dict[Tuple[int, int], Notehead] = dict()
+    
+    def _get_notehead(note: Note, stafflines_index: int) -> Optional[Notehead]:
+        nonlocal _all_noteheads
+        linear_pitch = note.pitch.get_linear_pitch()
+        return _all_noteheads.get((stafflines_index, linear_pitch))
+
+    def _store_notehead(note: Note, stafflines_index: int, notehead: Notehead):
+        nonlocal _all_noteheads
+        linear_pitch = note.pitch.get_linear_pitch()
+        _all_noteheads[(stafflines_index, linear_pitch)] = notehead
 
     # go through all the notes and create notehead glyphs
     for event in score_event.events:
         for durable in event.durables:
             if isinstance(durable, Note):
                 note: Note = durable
-                linear_pitch = note.pitch.get_linear_pitch()
                 stafflines_index = score.staff_index_of_durable(note)
-                stafflines = staves[stafflines_index]
+                notehead = _get_notehead(note, stafflines_index)
 
                 # another note for an existing notehead
-                if linear_pitch in linear_pitch_to_notehead:
-                    notehead = linear_pitch_to_notehead[linear_pitch]
+                if notehead is not None:
                     notehead.notes = [*notehead.notes, note]
                     continue
                 
@@ -215,12 +225,12 @@ def synthesize_notes_column(
                     ).value,
                     expected_glyph_type=Notehead
                 )
-                notehead.space.parent_space = stafflines.space
+                notehead.space.parent_space = staves[stafflines_index].space
                 notehead.notes = [*notehead.notes, note]
-                linear_pitch_to_notehead[linear_pitch] = notehead
+                _store_notehead(note, stafflines_index, notehead)
     
     # add noteheads to the column
-    for notehead in linear_pitch_to_notehead.values():
+    for notehead in _all_noteheads.values():
         column.add_notehead(notehead)
 
     # === rests ===
