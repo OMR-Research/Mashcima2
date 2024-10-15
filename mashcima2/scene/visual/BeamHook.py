@@ -1,6 +1,7 @@
 from .LineGlyph import LineGlyph
 from .BeamCoordinateSystem import BeamCoordinateSystem
 from ..semantic.Chord import Chord
+from ..semantic.BeamedGroup import BeamedGroup
 from dataclasses import dataclass
 from ..semantic.BeamValue import BeamValue
 
@@ -8,6 +9,9 @@ from ..semantic.BeamValue import BeamValue
 @dataclass
 class BeamHook(LineGlyph):
     """One hook glyph in a beamed group (visually)"""
+
+    beamed_group: BeamedGroup = None
+    "The beamed group this beam belongs to"
 
     chord: Chord = None
     """The chord in whose stem the hook is placed"""
@@ -18,6 +22,3 @@ class BeamHook(LineGlyph):
 
     hook_type: BeamValue = None
     """Either forward hook or backward hook. Any other value is invalid."""
-
-    beam_coordinate_system: BeamCoordinateSystem = None
-    "Defines the placement of the beam on the paper"

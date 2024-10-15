@@ -76,6 +76,10 @@ class Sprite(SceneObject):
             ))
             .then(Transform.scale(px_to_mm(1, dpi=self.dpi)))
         )
+    
+    def detach(self):
+        """Detaches the sprite from the scene hierarchy"""
+        self.space = None
 
     @staticmethod
     def debug_box(

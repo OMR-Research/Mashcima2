@@ -18,3 +18,7 @@ class ScenePoint(SceneObject):
     def transform_to(self, other_space: AffineSpace) -> Point:
         """Returns the point, as if it was placed in a higher affine space"""
         return other_space.transform_from(self.space).apply_to(self.point)
+
+    def detach(self):
+        """Detaches the scene point from the scene hierarchy"""
+        self.space = None

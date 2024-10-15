@@ -75,7 +75,7 @@ class BeamStemSynthesizer:
 
         # adjust stems for beamed groups
         for group in groups:
-            self.adjust_stems_for_beam_group(group)
+            self.adjust_stems_for_beam_group(paper_space, group)
 
     def synthesize_stem(self, paper_space: AffineSpace, chord: Chord):
         # notehead in the middle of the stem (the "top" notehead)
@@ -254,6 +254,7 @@ class BeamStemSynthesizer:
             raise Exception("This should never be raised.")
         
         f = BeamCoordinateSystem(
+            beamed_group=group,
             paper_space=paper_space,
             k=slope,
             q=q,
@@ -273,9 +274,9 @@ class BeamStemSynthesizer:
             beam = Beam(
                 glyph_class=SmashcimaGlyphClass.beam.value,
                 space=AffineSpace(parent_space=paper_space),
+                beamed_group=group,
                 chords=chords,
-                beam_number=beam_number,
-                beam_coordinate_system=f
+                beam_number=beam_number
             )
             start_tip = tips[group.chords.index(chords[0])]
             end_tip = tips[group.chords.index(chords[-1])]
@@ -291,10 +292,10 @@ class BeamStemSynthesizer:
             hook = BeamHook(
                 glyph_class=SmashcimaGlyphClass.beamHook.value,
                 space=AffineSpace(parent_space=paper_space),
+                beamed_group=group,
                 chord=chord,
                 beam_number=beam_number,
-                hook_type=hook_type,
-                beam_coordinate_system=f
+                hook_type=hook_type
             )
             start_x = tips[group.chords.index(chord)].x
             end_x = start_x + (
@@ -308,6 +309,34 @@ class BeamStemSynthesizer:
                 end_point=f.point(end_x, beam_number, stem_value)
             )
 
-    def adjust_stems_for_beam_group(self, group: BeamedGroup):
-        # TODO ...
-        pass
+    def adjust_stems_for_beam_group(
+        self,
+        paper_space: AffineSpace,
+        group: BeamedGroup
+    ):
+        stems = [Stem.of_chord(ch, fail_if_none=True) for ch in group.chords]
+        
+        f = BeamCoordinateSystem.of_beamed_group(group, fail_if_none=True)
+        
+        for stem in stems:
+            # get the new placement of the stem
+            start_point = stem.base.transform_to(paper_space)
+            end_point = f.point(stem.tip.transform_to(paper_space).x)
+
+            # remove old sprites and points
+            for sprite in stem.sprites:
+                sprite.detach()
+            stem.start_point.detach()
+            stem.end_point.detach()
+
+            stem.start_point = None
+            stem.end_point = None
+            stem.sprites = []
+
+            # synthesize new sprites and points
+            self.line_synthesizer.synthesize_line(
+                glyph=stem,
+                start_point=start_point,
+                end_point=end_point
+            )
+        
