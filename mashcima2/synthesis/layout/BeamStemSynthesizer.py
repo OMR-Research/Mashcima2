@@ -1,20 +1,17 @@
-from mashcima2.scene.visual.Stafflines import Stafflines
-from mashcima2.scene.semantic.Staff import Staff
 from mashcima2.scene.semantic.Note import Note
-from mashcima2.scene.semantic.Rest import Rest
 from mashcima2.scene.semantic.BeamedGroup import BeamedGroup
+from mashcima2.scene.semantic.BeamValue import BeamValue
 from mashcima2.scene.semantic.ScoreMeasure import ScoreMeasure
 from mashcima2.scene.semantic.Part import Part
 from mashcima2.scene.semantic.Chord import Chord
 from mashcima2.scene.semantic.Measure import Measure
 from mashcima2.scene.semantic.StemValue import StemValue
 from mashcima2.scene.AffineSpace import AffineSpace
-from mashcima2.scene.Sprite import Sprite
 from mashcima2.scene.visual.Notehead import Notehead
 from mashcima2.scene.visual.Stem import Stem
-from mashcima2.scene.visual.LineGlyph import LineGlyph
-from mashcima2.geometry.Transform import Transform
-from mashcima2.geometry.Rectangle import Rectangle
+from mashcima2.scene.visual.Beam import Beam
+from mashcima2.scene.visual.BeamHook import BeamHook
+from mashcima2.scene.visual.BeamCoordinateSystem import BeamCoordinateSystem
 from mashcima2.geometry.Vector2 import Vector2
 from mashcima2.geometry.Point import Point
 from mashcima2.synthesis.glyph.LineSynthesizer import LineSynthesizer
@@ -30,6 +27,8 @@ import math
 
 MAX_BEAM_SLOPE = 0.35
 BEAM_SLOPE_JITTER = 0.1
+BEAM_SPACING = 1.5 # TODO: guess or synth somehow
+HOOK_LENGTH = 3 # TODO: guess of synth somehow
 
 
 def softclamp(x: float, limit: float) -> float:
@@ -254,15 +253,12 @@ class BeamStemSynthesizer:
         else:
             raise Exception("This should never be raised.")
         
-        # TODO: guess or synth somehow
-        BEAM_SPACING = 1.5
-
-        def f(x: float, beam_number: int, stem_value: StemValue) -> float:
-            """Defines the beam line (beam number is 1-based)"""
-            beam_index = (beam_number - 1)
-            if stem_value == StemValue.down:
-                beam_index *= -1
-            return slope * x + q + (beam_index * BEAM_SPACING)
+        f = BeamCoordinateSystem(
+            paper_space=paper_space,
+            k=slope,
+            q=q,
+            beam_spacing=BEAM_SPACING
+        )
 
         # === 3) synthesize beam glyphs ===
 
@@ -274,27 +270,43 @@ class BeamStemSynthesizer:
 
         # beams
         for beam_number, chords in group.iterate_beams():
-            beam = LineGlyph(
+            beam = Beam(
                 glyph_class=SmashcimaGlyphClass.beam.value,
-                space=AffineSpace(parent_space=paper_space)
+                space=AffineSpace(parent_space=paper_space),
+                chords=chords,
+                beam_number=beam_number,
+                beam_coordinate_system=f
             )
             start_tip = tips[group.chords.index(chords[0])]
             end_tip = tips[group.chords.index(chords[-1])]
             stem_value = _determine_beam_orientation(chords)
             self.line_synthesizer.synthesize_line(
                 glyph=beam,
-                start_point=Point(
-                    start_tip.x,
-                    f(start_tip.x, beam_number, stem_value)
-                ),
-                end_point=Point(
-                    end_tip.x,
-                    f(end_tip.x, beam_number, stem_value)
-                )
+                start_point=f.point(start_tip.x, beam_number, stem_value),
+                end_point=f.point(end_tip.x, beam_number, stem_value)
             )
         
         # hooks
-        # TODO...
+        for beam_number, chord, hook_type in group.iterate_hooks():
+            hook = BeamHook(
+                glyph_class=SmashcimaGlyphClass.beamHook.value,
+                space=AffineSpace(parent_space=paper_space),
+                chord=chord,
+                beam_number=beam_number,
+                hook_type=hook_type,
+                beam_coordinate_system=f
+            )
+            start_x = tips[group.chords.index(chord)].x
+            end_x = start_x + (
+                HOOK_LENGTH
+                if hook_type == BeamValue.forward_hook else
+                -HOOK_LENGTH
+            )
+            self.line_synthesizer.synthesize_line(
+                glyph=hook,
+                start_point=f.point(start_x, beam_number, stem_value),
+                end_point=f.point(end_x, beam_number, stem_value)
+            )
 
     def adjust_stems_for_beam_group(self, group: BeamedGroup):
         # TODO ...

@@ -7,4 +7,5 @@ class SmashcimaGlyphClass(str, Enum):
     (e.g. beams and slurs) or that are specific to the synthesizer in some way"""
     
     beam = "smashcima::beam"
+    beamHook = "smashcima::beamHook"
     slur = "smashcima::slur"
