@@ -1,6 +1,8 @@
 from .SceneObject import SceneObject
 from .AffineSpace import AffineSpace
+from .Sprite import Sprite
 from ..geometry.Point import Point
+from ..geometry.Rectangle import Rectangle
 from dataclasses import dataclass
 
 
@@ -22,3 +24,17 @@ class ScenePoint(SceneObject):
     def detach(self):
         """Detaches the scene point from the scene hierarchy"""
         self.space = None
+    
+    def place_debug_overlay(self, radius=0.25, color=(0, 0, 255, 128)) -> Sprite:
+        """Places a sprite that acts as debugging overlay for the point"""
+        return Sprite.debug_box(
+            space=self.space,
+            rectangle=Rectangle(
+                x=self.point.x - radius,
+                y=self.point.y - radius,
+                width=radius * 2,
+                height=radius * 2
+            ),
+            fill_color=color,
+            border_width=0
+        )

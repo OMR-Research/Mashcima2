@@ -1,11 +1,8 @@
-from mashcima2.scene.visual.Glyph import Glyph
 from mashcima2.scene.visual.LineGlyph import LineGlyph
 from mashcima2.scene.ScenePoint import ScenePoint
-from mashcima2.scene.AffineSpace import AffineSpace
 from mashcima2.scene.Sprite import Sprite
 from mashcima2.geometry.Rectangle import Rectangle
 from mashcima2.geometry.Point import Point
-from mashcima2.geometry.Vector2 import Vector2
 from mashcima2.geometry.Transform import Transform
 import math
 

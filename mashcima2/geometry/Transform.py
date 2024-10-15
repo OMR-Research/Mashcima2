@@ -3,6 +3,7 @@ import cv2
 from .Vector2 import Vector2
 from .Point import Point
 from .Quad import Quad
+from .Polygon import Polygon
 from typing import TypeVar
 
 
@@ -62,6 +63,9 @@ class Transform:
         elif isinstance(other, Quad):
             pts = [self.apply_to(p) for p in other.points]
             return Quad(*pts)
+        elif isinstance(other, Polygon):
+            pts = [self.apply_to(p) for p in other.points]
+            return Polygon(pts)
         else:
             raise ValueError("Transform applied to an unexpected type")
     
