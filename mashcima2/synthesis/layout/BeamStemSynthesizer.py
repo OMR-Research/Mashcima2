@@ -169,10 +169,7 @@ class BeamStemSynthesizer:
             "There must be at least 2 chords in a beamed group"
 
         stems = [Stem.of_chord(ch, fail_if_none=True) for ch in group.chords]
-        tips = [ # tip points in paper space
-            paper_space.transform_from(s.space).apply_to(s.tip)
-            for s in stems
-        ]
+        tips = [s.tip.transform_to(paper_space) for s in stems]
         up_stem_count = len(
             [s for s in stems if s.chord.stem_value == StemValue.up]
         )

@@ -1,5 +1,6 @@
 from mashcima2.scene.visual.Glyph import Glyph
 from mashcima2.scene.visual.LineGlyph import LineGlyph
+from mashcima2.scene.ScenePoint import ScenePoint
 from mashcima2.scene.AffineSpace import AffineSpace
 from mashcima2.scene.Sprite import Sprite
 from mashcima2.geometry.Rectangle import Rectangle
@@ -23,8 +24,14 @@ class LineSynthesizer:
         sprite_transform = Transform.rotateDegCC(angle_deg)
         glyph.space.transform = Transform.translate(start_point.vector)
         
-        glyph.start_point = sprite_transform.apply_to(Point(0, 0))
-        glyph.end_point = sprite_transform.apply_to(Point(length, 0))
+        glyph.start_point = ScenePoint(
+            point=sprite_transform.apply_to(Point(0, 0)),
+            space=glyph.space
+        )
+        glyph.end_point = ScenePoint(
+            point=sprite_transform.apply_to(Point(length, 0)),
+            space=glyph.space
+        )
 
         sprite = Sprite.rectangle(
             glyph.space,

@@ -3,7 +3,7 @@ from ..semantic.Chord import Chord
 from dataclasses import dataclass
 from typing import Optional
 from mashcima2.nameof_via_dummy import nameof_via_dummy
-from mashcima2.geometry.Point import Point
+from ..ScenePoint import ScenePoint
 
 
 @dataclass
@@ -15,12 +15,12 @@ class Stem(LineGlyph):
     only during construction, otherwise must be set."""
 
     @property
-    def base(self) -> Point:
+    def base(self) -> ScenePoint:
         """Base of the stem, in glyph space coordinates"""
         return self.start_point
 
     @property
-    def tip(self) -> Point:
+    def tip(self) -> ScenePoint:
         """Tip of the stem, in glyph space coordinates"""
         return self.end_point
 
