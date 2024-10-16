@@ -13,7 +13,10 @@ from .get_symbols import \
     get_sixteenth_rests, \
     get_g_clefs, \
     get_f_clefs, \
-    get_c_clefs
+    get_c_clefs, \
+    get_stems, \
+    get_beams, \
+    get_ledger_lines
 from .SymbolRepository import SymbolRepository
 from .MppGlyphMetadata import MppGlyphMetadata
 from pathlib import Path
@@ -56,8 +59,9 @@ class MuscimaPPGlyphs(AssetBundle):
             repository.add_glyphs(get_g_clefs(page))
             repository.add_glyphs(get_f_clefs(page))
             repository.add_glyphs(get_c_clefs(page))
-
-            # TODO: and extract lines
+            repository.add_glyphs(get_stems(page))
+            repository.add_glyphs(get_beams(page))
+            repository.add_glyphs(get_ledger_lines(page))
 
             # TODO: and extract distributions
 
@@ -106,7 +110,6 @@ if __name__ == "__main__":
 
     print("Re-installing MUSCIMA++ glyphs...")
     bundle = assets.resolve_bundle(MuscimaPPGlyphs, force_install=True)
-    # bundle = assets.resolve_bundle(MuscimaPPGlyphs) # TODO: DEBUG
     
     if sys.argv[1] == "--debug":
         print("Building the debug folder...")

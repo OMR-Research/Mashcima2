@@ -4,14 +4,22 @@ from .MppPage import MppPage
 from .MppGlyphMetadata import MppGlyphMetadata
 from .MppGlyphClass import MppGlyphClass
 from mashcima2.scene.Sprite import Sprite
+from mashcima2.scene.ScenePoint import ScenePoint
 from mashcima2.geometry.Point import Point
 from mashcima2.scene.visual.Glyph import Glyph
+from mashcima2.scene.visual.LineGlyph import LineGlyph
 from mashcima2.scene.visual.Notehead import Notehead
 from mashcima2.scene.visual.RestGlyph import RestGlyph
+from mashcima2.scene.visual.Stem import Stem
+from mashcima2.scene.visual.Beam import Beam
+from mashcima2.scene.visual.LedgerLine import LedgerLine
+from .get_line_endpoints import get_line_endpoints
 import numpy as np
+import cv2
 
 
 T = TypeVar("T", bound=Glyph)
+U = TypeVar("U", bound=LineGlyph)
 
 # source:
 # https://pages.cvc.uab.es/cvcmuscima/index_database.html
@@ -115,6 +123,59 @@ def _get_symbols_centered_on_line(
     )
 
 
+def _crop_objects_to_line_glyphs(
+    crop_objects: List[CropObject],
+    page: MppPage,
+    glyph_type: Type[U],
+    glyph_class: MppGlyphClass,
+    horizontal_line: bool,
+    in_increasing_direction: bool,
+) -> List[U]:
+    glyphs: List[U] = []
+
+    for o in crop_objects:
+        # prepare the glyph
+        glyph = glyph_type(
+            glyph_class=glyph_class.value
+        )
+        MppGlyphMetadata.stamp_glyph(glyph, page, int(o.objid))
+        sprite = Sprite(
+            space=glyph.space,
+            bitmap=_mpp_mask_to_sprite_bitmap(o.mask),
+            bitmap_origin=Point(0.5, 0.5),
+            dpi=MUSCIMA_PP_DPI
+        )
+        glyph.sprites = [sprite]
+
+        # extract endpoints
+        blurred_mask = cv2.medianBlur(o.mask, 5) # smooth out (5x5 window)
+        points = get_line_endpoints(blurred_mask)
+        points.sort(
+            key=lambda p: p.x if horizontal_line else p.y,
+            reverse=not in_increasing_direction
+        )
+        if len(points) < 2:
+            # print(
+            #     "Skipping line:", o.uid,
+            #     "Has points:", len(points),
+            #     "Is:", o.clsname
+            # )
+            continue
+        glyph.start_point = ScenePoint(
+            point=sprite.get_pixels_to_scene_transform().apply_to(points[0]),
+            space=glyph.space
+        )
+        glyph.end_point = ScenePoint(
+            point=sprite.get_pixels_to_scene_transform().apply_to(points[-1]),
+            space=glyph.space
+        )
+
+        # return the glyph
+        glyphs.append(glyph)
+
+    return glyphs
+
+
 ################################################
 # Code that actually extracts required symbols #
 ################################################
@@ -203,6 +264,7 @@ def get_eighth_rests(page: MppPage) -> List[RestGlyph]:
         when_center_outside_recenter=True
     )
 
+
 def get_sixteenth_rests(page: MppPage) -> List[RestGlyph]:
     return _get_symbols_centered_on_line(
         page,
@@ -215,11 +277,16 @@ def get_sixteenth_rests(page: MppPage) -> List[RestGlyph]:
 
 
 def get_normal_barlines(page: MppPage) -> List[Glyph]:
+    _EXCLUDE = set([
+        # this is a double barline, accidentally annotated as simple
+        "MUSCIMA-pp_1.0___CVC-MUSCIMA_W-32_N-09_D-ideal___70"
+    ])
     return _crop_objects_to_single_sprite_glyphs(
         crop_objects=[
             o for o in page.crop_objects
             if o.clsname in ["thin_barline"]
             and o.height < TALL_BARLINE_THRESHOLD_PX
+            and o.uid not in _EXCLUDE
         ],
         page=page,
         glyph_type=Glyph,
@@ -256,4 +323,46 @@ def get_c_clefs(page: MppPage) -> List[Glyph]:
         page=page,
         glyph_type=Glyph,
         glyph_class=MppGlyphClass.cClef
+    )
+
+
+def get_stems(page: MppPage) -> List[Stem]:
+    return _crop_objects_to_line_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname in ["stem"]
+        ],
+        page=page,
+        glyph_type=Stem,
+        glyph_class=MppGlyphClass.stem,
+        horizontal_line=False, # vertical line
+        in_increasing_direction=False # pointing upwards
+    )
+
+
+def get_beams(page: MppPage) -> List[Beam]:
+    return _crop_objects_to_line_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname in ["beam"]
+        ],
+        page=page,
+        glyph_type=Beam,
+        glyph_class=MppGlyphClass.beam,
+        horizontal_line=True, # horizontal line
+        in_increasing_direction=True # pointing to the right
+    )
+
+
+def get_ledger_lines(page: MppPage) -> List[LedgerLine]:
+    return _crop_objects_to_line_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname in ["ledger_line"]
+        ],
+        page=page,
+        glyph_type=LedgerLine,
+        glyph_class=MppGlyphClass.ledgerLine,
+        horizontal_line=True, # horizontal line
+        in_increasing_direction=True # pointing to the right
     )

@@ -26,7 +26,7 @@ class LineGlyph(Glyph):
             self.start_point.place_debug_overlay(color=(0, 0, 255, 128))
         )
         overlay.append(
-            self.start_point.place_debug_overlay(color=(255, 0, 0, 128))
+            self.end_point.place_debug_overlay(color=(255, 0, 0, 128))
         )
 
         return overlay

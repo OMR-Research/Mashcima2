@@ -18,9 +18,18 @@ class MppGlyphClass(str, Enum):
     noteheadFull = "muscima_pp::notehead-full"
     noteheadEmpty = "muscima_pp::notehead-empty"
 
+    # Ledger Lines
+    ledgerLine = "muscima_pp::ledger_line"
+
+    # Stems
+    stem = "muscima_pp::stem"
+
     # Rests
     wholeRest = "muscima_pp::whole_rest"
     halfRest = "muscima_pp::half_rest"
     quarterRest = "muscima_pp::quarter_rest"
     eighthRest = "muscima_pp::8th_rest"
     sixteenthRest = "muscima_pp::16th_rest"
+
+    # Beams
+    beam = "muscima_pp::beam"

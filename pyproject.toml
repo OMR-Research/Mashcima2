@@ -9,7 +9,7 @@ authors = [
 ]
 dependencies = [
     "numpy",
-    "opencv-python",
+    "opencv-contrib-python",
     "requests",
     "tqdm",
     "nameof",
