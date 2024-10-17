@@ -2,6 +2,7 @@ from ...AssetBundle import AssetBundle
 from ...datasets.MuscimaPP import MuscimaPP
 from mashcima2.rendering.DebugGlyphRenderer import DebugGlyphRenderer
 from .MppPage import MppPage
+from .MppGlyphClass import MppGlyphClass
 from .get_symbols import \
     get_full_noteheads, \
     get_empty_noteheads, \
@@ -67,6 +68,14 @@ class MuscimaPPGlyphs(AssetBundle):
             repository.add_glyphs(get_beams(page))
             repository.add_glyphs(get_beam_hooks(page))
             repository.add_glyphs(get_ledger_lines(page))
+
+            # and line indexes
+            repository.index_lines([
+                MppGlyphClass.stem.value,
+                MppGlyphClass.beam.value,
+                MppGlyphClass.beamHook.value,
+                MppGlyphClass.ledgerLine.value
+            ])
 
             # TODO: and extract distributions
 

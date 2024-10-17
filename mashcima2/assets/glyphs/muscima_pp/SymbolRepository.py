@@ -1,6 +1,7 @@
 from typing import List, Dict, Tuple, Set
 from mashcima2.scene.visual.Glyph import Glyph
 from .MppGlyphMetadata import MppGlyphMetadata
+from .LineList import LineList
 
 
 class SymbolRepository:
@@ -59,3 +60,15 @@ class SymbolRepository:
                 lambda g: MppGlyphMetadata.of_glyph(g).mpp_writer == writer,
                 self.glyphs_by_class_and_writer[key]
             ))
+
+    def index_lines(self, glyph_classes: List[str]):
+        """Build line lookup index for each lines collection"""
+        for glyph_class in glyph_classes:
+            if glyph_class in self.glyphs_by_class:
+                self.glyphs_by_class[glyph_class] = \
+                    LineList(self.glyphs_by_class[glyph_class])
+
+            for writer in self.all_writers:                
+                if (glyph_class, writer) in self.glyphs_by_class_and_writer:
+                    self.glyphs_by_class_and_writer[glyph_class, writer] = \
+                        LineList(self.glyphs_by_class_and_writer[glyph_class, writer])

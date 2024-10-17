@@ -6,7 +6,6 @@ from mashcima2.geometry.Vector2 import Vector2
 from mashcima2.geometry.Transform import Transform
 from .LineSynthesizer import LineSynthesizer, T
 from typing import Type
-import math
 import cv2
 import numpy as np
 
