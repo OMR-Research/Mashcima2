@@ -33,3 +33,4 @@ class MppGlyphClass(str, Enum):
 
     # Beams
     beam = "muscima_pp::beam"
+    beamHook = "muscima_pp::beam_hook"

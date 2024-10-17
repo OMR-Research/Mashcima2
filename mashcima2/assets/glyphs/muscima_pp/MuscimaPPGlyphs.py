@@ -16,6 +16,7 @@ from .get_symbols import \
     get_c_clefs, \
     get_stems, \
     get_beams, \
+    get_beam_hooks, \
     get_ledger_lines
 from .SymbolRepository import SymbolRepository
 from .MppGlyphMetadata import MppGlyphMetadata
@@ -24,10 +25,13 @@ import pickle
 from tqdm import tqdm
 import shutil
 import cv2
+from typing import Optional
 
 
 class MuscimaPPGlyphs(AssetBundle):
     def __post_init__(self):
+        self._symbol_repository_cache: Optional[SymbolRepository] = None
+
         self.muscima_pp = self.dependency_resolver.resolve_bundle(MuscimaPP)
 
     @property
@@ -61,6 +65,7 @@ class MuscimaPPGlyphs(AssetBundle):
             repository.add_glyphs(get_c_clefs(page))
             repository.add_glyphs(get_stems(page))
             repository.add_glyphs(get_beams(page))
+            repository.add_glyphs(get_beam_hooks(page))
             repository.add_glyphs(get_ledger_lines(page))
 
             # TODO: and extract distributions
@@ -72,10 +77,13 @@ class MuscimaPPGlyphs(AssetBundle):
     
     def load_symbol_repository(self) -> SymbolRepository:
         """Loads the symbol repository from its pickle file"""
-        with open(self.symbol_repository_path, "rb") as file:
-            repository = pickle.load(file)
-        assert isinstance(repository, SymbolRepository)
-        return repository
+        if self._symbol_repository_cache is None:
+            with open(self.symbol_repository_path, "rb") as file:
+                repository = pickle.load(file)
+            assert isinstance(repository, SymbolRepository)
+            self._symbol_repository_cache = repository
+        
+        return self._symbol_repository_cache
     
     def build_debug_folder(self):
         """Creates a debug folder in the bundle folder, where it dumps
@@ -101,6 +109,8 @@ class MuscimaPPGlyphs(AssetBundle):
                 )
 
 
+# Run by:
+# .venv/bin/python3 -m mashcima2.assets.glyphs.muscima_pp.MuscimaPPGlyphs --debug
 if __name__ == "__main__":
     from ...AssetRepository import AssetRepository
     from pathlib import Path
@@ -111,7 +121,7 @@ if __name__ == "__main__":
     print("Re-installing MUSCIMA++ glyphs...")
     bundle = assets.resolve_bundle(MuscimaPPGlyphs, force_install=True)
     
-    if sys.argv[1] == "--debug":
+    if len(sys.argv) >= 2 and sys.argv[1] == "--debug":
         print("Building the debug folder...")
         bundle.build_debug_folder()
 

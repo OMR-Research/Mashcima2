@@ -4,7 +4,6 @@ from mashcima2.scene.visual.System import System
 from mashcima2.scene.visual.Page import Page
 from mashcima2.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from ..BeamStemSynthesizer import BeamStemSynthesizer
-from ...glyph.LineSynthesizer import LineSynthesizer
 from .Column import Column
 from .ColumnBase import ColumnBase
 from .BarlinesColumn import synthesize_barlines_column
@@ -116,8 +115,14 @@ def _place_columns_flexbox(
 # IN -> semantic scene object graph
 # OUT -> visual scene object graph
 class ColumnLayoutSynthesizer:
-    def __init__(self, glyph_synthesizer: GlyphSynthesizer, rng: random.Random):
+    def __init__(
+        self,
+        glyph_synthesizer: GlyphSynthesizer,
+        beam_stem_synthesizer: BeamStemSynthesizer,
+        rng: random.Random
+    ):
         self.glyph_synthesizer = glyph_synthesizer
+        self.beam_stem_synthesizer = beam_stem_synthesizer
         self.rng = rng
 
         # The following values control the synthesizer.
@@ -300,25 +305,13 @@ class ColumnLayoutSynthesizer:
         # TODO: get paper_space as an argument
         paper_space = staves[0].space.parent_space
 
-        line_synthesizer = LineSynthesizer()
-        beam_stem_synthesizer = BeamStemSynthesizer(line_synthesizer, self.rng)
-
         for i in range(system.measure_count):
             score_measure = score.get_score_measure(
                 system.first_measure_index + i
             )
-            beam_stem_synthesizer.synthesize_beams_and_stems_for_measure(
+            self.beam_stem_synthesizer.synthesize_beams_and_stems_for_measure(
                 paper_space,
                 score_measure
             )
-
-        # TODO: DEBUG: just testing out the line synth
-        # for column in state.columns:
-        #     if isinstance(column, NotesColumn):
-        #         for notehead_context in column.notehead_contexts:
-        #             beam_stem_synthesizer.synthesize_stem(
-        #                 paper_space,
-        #                 notehead_context.notehead
-        #             )
 
         return system

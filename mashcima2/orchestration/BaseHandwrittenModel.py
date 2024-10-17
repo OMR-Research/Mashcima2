@@ -10,6 +10,12 @@ from ..rendering.BitmapRenderer import BitmapRenderer
 from ..synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from ..synthesis.glyph.MuscimaPPGlyphSynthesizer import MuscimaPPGlyphSynthesizer
 from mashcima2.synthesis.page.SimplePageSynthesizer import SimplePageSynthesizer
+from mashcima2.synthesis.glyph.LineSynthesizer import LineSynthesizer
+from mashcima2.synthesis.glyph.NaiveLineSynthesizer \
+    import NaiveLineSynthesizer
+from mashcima2.synthesis.glyph.MuscimaPPLineSynthesizer \
+    import MuscimaPPLineSynthesizer
+from mashcima2.synthesis.layout.BeamStemSynthesizer import BeamStemSynthesizer
 from mashcima2.scene.visual.Page import Page
 from .CallbackTrigger import CallbackTrigger
 import numpy as np
@@ -28,6 +34,7 @@ class BaseHandwrittenModel(Model):
 
         # define default sub-synthesizers to be used by this model
         self.container.type(ColumnLayoutSynthesizer)
+        self.container.type(BeamStemSynthesizer)
         self.container.interface(
             StafflinesSynthesizer,
             NaiveStafflinesSynthesizer
@@ -35,6 +42,10 @@ class BaseHandwrittenModel(Model):
         self.container.interface(
             GlyphSynthesizer,
             MuscimaPPGlyphSynthesizer
+        )
+        self.container.interface(
+            LineSynthesizer,
+            MuscimaPPLineSynthesizer
         )
         self.container.type(SimplePageSynthesizer)
 

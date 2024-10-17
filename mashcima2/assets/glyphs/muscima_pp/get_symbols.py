@@ -12,6 +12,7 @@ from mashcima2.scene.visual.Notehead import Notehead
 from mashcima2.scene.visual.RestGlyph import RestGlyph
 from mashcima2.scene.visual.Stem import Stem
 from mashcima2.scene.visual.Beam import Beam
+from mashcima2.scene.visual.BeamHook import BeamHook
 from mashcima2.scene.visual.LedgerLine import LedgerLine
 from .get_line_endpoints import get_line_endpoints
 import numpy as np
@@ -26,6 +27,7 @@ U = TypeVar("U", bound=LineGlyph)
 MUSCIMA_PP_DPI = 300
 
 TALL_BARLINE_THRESHOLD_PX = 150
+BEAM_HOOK_MAX_WIDTH_PX = 25
 
 
 def _mpp_mask_to_sprite_bitmap(mask: np.ndarray):
@@ -345,10 +347,26 @@ def get_beams(page: MppPage) -> List[Beam]:
         crop_objects=[
             o for o in page.crop_objects
             if o.clsname in ["beam"]
+            and o.width > BEAM_HOOK_MAX_WIDTH_PX
         ],
         page=page,
         glyph_type=Beam,
         glyph_class=MppGlyphClass.beam,
+        horizontal_line=True, # horizontal line
+        in_increasing_direction=True # pointing to the right
+    )
+
+
+def get_beam_hooks(page: MppPage) -> List[BeamHook]:
+    return _crop_objects_to_line_glyphs(
+        crop_objects=[
+            o for o in page.crop_objects
+            if o.clsname in ["beam"]
+            and o.width <= BEAM_HOOK_MAX_WIDTH_PX
+        ],
+        page=page,
+        glyph_type=BeamHook,
+        glyph_class=MppGlyphClass.beamHook,
         horizontal_line=True, # horizontal line
         in_increasing_direction=True # pointing to the right
     )

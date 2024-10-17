@@ -35,3 +35,7 @@ class Stem(LineGlyph):
             at_most_one=True,
             fail_if_none=fail_if_none
         )
+    
+    def detach(self):
+        self.space.parent_space = None
+        self.chord = None

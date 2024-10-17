@@ -93,7 +93,10 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
         assert type(glyph_class) is str, "Requested glyph class must be str type"
 
         # pick a glyph from the symbol repository
-        glyph = self._synthesize_glyph(glyph_class)
+        if glyph_class in _QUERY_TO_MPP_LOOKUP:
+            glyph = self.pick(_QUERY_TO_MPP_LOOKUP[glyph_class])
+        else:
+            raise Exception("Unsupported glyph class: " + glyph_class)
 
         # make a copy of that glyph before returning
         glyph_copy = copy.deepcopy(glyph)
@@ -110,12 +113,6 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
         )
 
         return glyph_copy
-    
-    def _synthesize_glyph(self, glyph_class: str) -> Glyph:
-        if glyph_class in _QUERY_TO_MPP_LOOKUP:
-            return self.pick(_QUERY_TO_MPP_LOOKUP[glyph_class])
-        
-        raise Exception("Unsupported glyph class: " + glyph_class)
     
     def pick(self, glyph_class: str) -> Glyph:
         """Picks a random glyph from the symbol repository according to the

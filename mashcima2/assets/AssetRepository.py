@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Dict
 from .AssetBundle import AssetBundle, BundleResolver
 from ..config import MC_ASSETS_CACHE
 
@@ -25,20 +25,31 @@ class AssetRepository(BundleResolver):
 
         self.path.mkdir(parents=True, exist_ok=True)
 
+        self._bundle_cache: Dict[Type[T], T] = dict()
+        "Caches bundle instance to speed up their resolution"
+
     @staticmethod
     def default() -> "AssetRepository":
-        """Returns the default asset repository to use this process"""
+        """Builds a new instance of the default asset repository
+        to use for this process"""
         return AssetRepository(
             Path(MC_ASSETS_CACHE).resolve()
         )
     
     def resolve_bundle(self, bundle_type: Type[T], force_install=False) -> T:
         """Ensures that a bundle is installed and returns its instance"""
+        # try resolving from cache
+        if bundle_type in self._bundle_cache:
+            return self._bundle_cache[bundle_type]
+        
         # instantiate the bundle
         bundle = bundle_type(
             bundle_directory=self.path / bundle_type.__name__,
             dependency_resolver=self
         )
+
+        # cache the bundle instance
+        self._bundle_cache[bundle_type] = bundle
 
         # run __post_init__ to resolve dependencies and do additional set-ups
         if hasattr(bundle, "__post_init__"):

@@ -1,4 +1,5 @@
 import math
+from typing import Generator, Any
 
 
 class Vector2:
@@ -56,8 +57,27 @@ class Vector2:
         else:
             raise ValueError("Vectors can only be multiplied by scalars")
     
-    def __div__(self, other):
+    def __truediv__(self, other):
         if isinstance(other, float) or isinstance(other, int):
             return Vector2(self.x / other, self.y / other)
         else:
             raise ValueError("Vectors can only be divided by scalars")
+    
+    def __iter__(self) -> Generator[float, Any, Any]:
+        yield self.x
+        yield self.y
+
+    def rotate90degCC(self) -> "Vector2":
+        """Returns a 90deg rotated version of the vector counter clockwise"""
+        return Vector2(self.y, -self.x)
+
+    def rotate90degCW(self) -> "Vector2":
+        """Returns a 90deg rotated version of the vector clockwise"""
+        return Vector2(-self.y, self.x)
+
+    def normalize(self) -> "Vector2":
+        """Returns the vector normalized to unit length"""
+        m = self.magnitude
+        if m == 0:
+            raise Exception("Zero vector cannot be normalized")
+        return self / m

@@ -109,16 +109,14 @@ class BeamStemSynthesizer:
         stem_tip = self.get_stem_tip_point(stem_center, stem_value)
 
         # synthesize the stem glyph
-        stem = Stem(
+        stem = self.line_synthesizer.synthesize_line(
+            glyph_type=Stem,
             glyph_class=SmuflGlyphClass.stem.value,
-            space=AffineSpace(parent_space=paper_space),
-            chord=chord
-        )
-        self.line_synthesizer.synthesize_line(
-            glyph=stem,
             start_point=stem_base,
             end_point=stem_tip
         )
+        stem.space.parent_space = paper_space
+        stem.chord = chord
     
     def infer_stem_orientation(self, chord: Chord) -> StemValue:
         # NOTE: could be implemented in the future,
@@ -271,43 +269,38 @@ class BeamStemSynthesizer:
 
         # beams
         for beam_number, chords in group.iterate_beams():
-            beam = Beam(
-                glyph_class=SmashcimaGlyphClass.beam.value,
-                space=AffineSpace(parent_space=paper_space),
-                beamed_group=group,
-                chords=chords,
-                beam_number=beam_number
-            )
             start_tip = tips[group.chords.index(chords[0])]
             end_tip = tips[group.chords.index(chords[-1])]
             stem_value = _determine_beam_orientation(chords)
-            self.line_synthesizer.synthesize_line(
-                glyph=beam,
+            beam = self.line_synthesizer.synthesize_line(
+                glyph_type=Beam,
+                glyph_class=SmashcimaGlyphClass.beam.value,
                 start_point=f.point(start_tip.x, beam_number, stem_value),
                 end_point=f.point(end_tip.x, beam_number, stem_value)
             )
+            beam.space.parent_space = paper_space
+            beam.chords = chords
+            beam.beam_number = beam_number
         
         # hooks
         for beam_number, chord, hook_type in group.iterate_hooks():
-            hook = BeamHook(
-                glyph_class=SmashcimaGlyphClass.beamHook.value,
-                space=AffineSpace(parent_space=paper_space),
-                beamed_group=group,
-                chord=chord,
-                beam_number=beam_number,
-                hook_type=hook_type
-            )
             start_x = tips[group.chords.index(chord)].x
             end_x = start_x + (
                 HOOK_LENGTH
                 if hook_type == BeamValue.forward_hook else
                 -HOOK_LENGTH
             )
-            self.line_synthesizer.synthesize_line(
-                glyph=hook,
+            hook = self.line_synthesizer.synthesize_line(
+                glyph_type=BeamHook,
+                glyph_class=SmashcimaGlyphClass.beamHook.value,
                 start_point=f.point(start_x, beam_number, stem_value),
                 end_point=f.point(end_x, beam_number, stem_value)
             )
+            hook.space.parent_space = paper_space
+            hook.beamed_group = group
+            hook.chord = chord
+            hook.beam_number = beam_number
+            hook.hook_type = hook_type
 
     def adjust_stems_for_beam_group(
         self,
@@ -318,25 +311,20 @@ class BeamStemSynthesizer:
         
         f = BeamCoordinateSystem.of_beamed_group(group, fail_if_none=True)
         
-        for stem in stems:
+        for old_stem in stems:
             # get the new placement of the stem
-            start_point = stem.base.transform_to(paper_space)
-            end_point = f.point(stem.tip.transform_to(paper_space).x)
-
-            # remove old sprites and points
-            for sprite in stem.sprites:
-                sprite.detach()
-            stem.start_point.detach()
-            stem.end_point.detach()
-
-            stem.start_point = None
-            stem.end_point = None
-            stem.sprites = []
+            start_point = old_stem.base.transform_to(paper_space)
+            end_point = f.point(old_stem.tip.transform_to(paper_space).x)
 
             # synthesize new sprites and points
-            self.line_synthesizer.synthesize_line(
-                glyph=stem,
+            new_stem = self.line_synthesizer.synthesize_line(
+                glyph_type=Stem,
+                glyph_class=old_stem.glyph_class,
                 start_point=start_point,
                 end_point=end_point
             )
-        
+            new_stem.space.parent_space = paper_space
+            new_stem.chord = old_stem.chord
+
+            # remove the old stem from scene
+            old_stem.detach()
