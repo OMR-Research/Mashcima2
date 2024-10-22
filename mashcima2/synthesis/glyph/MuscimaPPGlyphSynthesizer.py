@@ -5,8 +5,7 @@ from mashcima2.assets.AssetRepository import AssetRepository
 from mashcima2.assets.glyphs.muscima_pp.MuscimaPPGlyphs import MuscimaPPGlyphs
 from mashcima2.assets.glyphs.muscima_pp.MppGlyphClass import MppGlyphClass
 from .SmuflGlyphClass import SmuflGlyphClass
-from mashcima2.orchestration.CallbackTrigger import CallbackTrigger
-from mashcima2.orchestration.Callback import Callback
+from mashcima2.synthesis.style.MuscimaPPStyleDomain import MuscimaPPStyleDomain
 import random
 import copy
 
@@ -48,42 +47,29 @@ _QUERY_TO_MPP_LOOKUP: Dict[str, str] = {
 }
 
 
-class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
+class MuscimaPPGlyphSynthesizer(GlyphSynthesizer):
     """
     Synthesizes glyphs by sampling from the MUSCIMA++ dataset
     """
     def __init__(
         self,
         assets: AssetRepository,
+        mpp_style_domain: MuscimaPPStyleDomain,
         rng: random.Random,
-        callbacks: CallbackTrigger
     ):
-        self.rng = rng
-        "RNG used for randomization"
-
         bundle = assets.resolve_bundle(MuscimaPPGlyphs)
         self.symbol_repository = bundle.load_symbol_repository()
         "The symbol repository used for synthesis"
 
-        self.current_writer = self.pick_writer()
-        "What MPP writer to use for glyph synthesis"
-
-        # listen to model synthesis callbacks
-        callbacks.add_callback(self)
+        self.mpp_style_domain = mpp_style_domain
+        "Dictates which MUSCIMA++ writer to use for synthesis"
+        
+        self.rng = rng
+        "RNG used for randomization"
     
     @property
     def supported_glyphs(self) -> Set[str]:
         return set(_QUERY_TO_MPP_LOOKUP.keys())
-    
-    def on_sample_begin(self):
-        """Called through callbacks"""
-        self.current_writer = self.pick_writer()
-    
-    def pick_writer(self) -> int:
-        """Picks a random MPP writer to use for synthesis and returns it"""
-        assert len(self.symbol_repository.all_writers) > 0, \
-            "There are no writers in the symbol repository"
-        return self.rng.choice(list(self.symbol_repository.all_writers))
     
     def synthesize_glyph(
         self,
@@ -120,7 +106,7 @@ class MuscimaPPGlyphSynthesizer(GlyphSynthesizer, Callback):
         # get the list of glyphs to choose from
         # (if writer is missing this class, fall back on all writers)
         glyphs = self.symbol_repository.glyphs_by_class_and_writer.get(
-            (glyph_class, self.current_writer)
+            (glyph_class, self.mpp_style_domain.current_writer)
         ) or self.symbol_repository.glyphs_by_class.get(glyph_class)
 
         if glyphs is None or len(glyphs) == 0:

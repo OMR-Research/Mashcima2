@@ -17,7 +17,7 @@ from mashcima2.synthesis.glyph.MuscimaPPLineSynthesizer \
     import MuscimaPPLineSynthesizer
 from mashcima2.synthesis.layout.BeamStemSynthesizer import BeamStemSynthesizer
 from mashcima2.scene.visual.Page import Page
-from .CallbackTrigger import CallbackTrigger
+from mashcima2.synthesis.style.MuscimaPPStyleDomain import MuscimaPPStyleDomain
 import numpy as np
 from typing import List
 
@@ -32,39 +32,40 @@ class BaseHandwrittenModel(Model):
     def __init__(self):
         super().__init__()
 
-        # define default sub-synthesizers to be used by this model
-        self.container.type(ColumnLayoutSynthesizer)
-        self.container.type(BeamStemSynthesizer)
-        self.container.interface(
-            StafflinesSynthesizer,
-            NaiveStafflinesSynthesizer
-        )
-        self.container.interface(
-            GlyphSynthesizer,
-            MuscimaPPGlyphSynthesizer
-        )
-        self.container.interface(
-            LineSynthesizer,
-            MuscimaPPLineSynthesizer
-        )
-        self.container.type(SimplePageSynthesizer)
-
         self.pages: List[Page] = []
         "Pages that will be synthesized during model invocation"
+    
+    def register_services(self):
+        super().register_services()
+        c = self.container
+
+        c.type(ColumnLayoutSynthesizer)
+        c.type(BeamStemSynthesizer)
+        c.interface(StafflinesSynthesizer, NaiveStafflinesSynthesizer)
+        c.interface(GlyphSynthesizer, MuscimaPPGlyphSynthesizer)
+        c.interface(LineSynthesizer, MuscimaPPLineSynthesizer)
+        c.type(SimplePageSynthesizer)
+        c.type(MuscimaPPStyleDomain)
+
+    def resolve_services(self):
+        super().resolve_services()
+        c = self.container
+
+        self.layout_synthesizer = c.resolve(ColumnLayoutSynthesizer)
+        self.page_synthesizer = c.resolve(SimplePageSynthesizer)
+    
+    def configure_services(self):
+        super().configure_services()
+        
+        self.styler.register_domain(
+            MuscimaPPStyleDomain,
+            self.container.resolve(MuscimaPPStyleDomain)
+        )
 
     def __call__(self, annotation_file_path: str) -> np.ndarray:
         return super().__call__(annotation_file_path)
 
     def call(self, annotation_file_path: str):
-        # resolve services
-        # (must be done first so that callback handlers are registered)
-        callbacks = self.container.resolve(CallbackTrigger)
-        layout_synthesizer = self.container.resolve(ColumnLayoutSynthesizer)
-        page_synthesizer = self.container.resolve(SimplePageSynthesizer)
-
-        # start the synthesis
-        callbacks.trigger_on_sample_begin()
-
         # load the symbolic part
         score = MusicXmlLoader().load_file(annotation_file_path)
         self.scene.add(score)
@@ -78,7 +79,7 @@ class BaseHandwrittenModel(Model):
         _PAGE_SPACING = 10 # 1cm
         while next_measure_index < score.measure_count:
             # prepare the next page of music
-            page = page_synthesizer.synthesize_page(next_page_origin)
+            page = self.page_synthesizer.synthesize_page(next_page_origin)
             page.space.parent_space = self.scene.space
             self.scene.add(page)
             self.pages.append(page)
@@ -89,7 +90,7 @@ class BaseHandwrittenModel(Model):
             )
 
             # synthesize music onto the page
-            systems = layout_synthesizer.fill_page(
+            systems = self.layout_synthesizer.fill_page(
                 page,
                 score,
                 start_on_measure=next_measure_index
@@ -99,8 +100,6 @@ class BaseHandwrittenModel(Model):
         # add objects to scene that are transitively linked from objects
         # already in scene
         self.scene.add_closure()
-
-        callbacks.trigger_on_sample_end()
 
         return self.render(page_index=0)
     

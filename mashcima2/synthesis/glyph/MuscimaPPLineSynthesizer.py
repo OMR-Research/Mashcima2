@@ -6,13 +6,11 @@ from mashcima2.assets.glyphs.muscima_pp.MppGlyphClass import MppGlyphClass
 from mashcima2.assets.glyphs.muscima_pp.LineList import LineList
 from mashcima2.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from mashcima2.synthesis.glyph.SmashcimaGlyphClass import SmashcimaGlyphClass
+from mashcima2.synthesis.style.MuscimaPPStyleDomain import MuscimaPPStyleDomain
 from typing import Type, Dict
 import random
 import copy
 
-# TODO: HACK
-from mashcima2.synthesis.glyph.GlyphSynthesizer \
-    import GlyphSynthesizer
 
 _QUERY_TO_MPP_LOOKUP: Dict[str, str] = {
     SmuflGlyphClass.stem.value: MppGlyphClass.stem.value,
@@ -28,30 +26,18 @@ class MuscimaPPLineSynthesizer(NaiveLineSynthesizer):
     def __init__(
         self,
         assets: AssetRepository,
-        rng: random.Random,
-        # callbacks: CallbackTrigger
-        glyph_synth: GlyphSynthesizer # TODO: HACK
+        mpp_style_domain: MuscimaPPStyleDomain,
+        rng: random.Random
     ):
-        self.rng = rng
-        "RNG used for randomization"
-
-        # TODO: cache this and reuse
         bundle = assets.resolve_bundle(MuscimaPPGlyphs)
         self.symbol_repository = bundle.load_symbol_repository()
         "The symbol repository used for synthesis"
 
-        # self.current_writer = self.pick_writer()
-        "What MPP writer to use for glyph synthesis"
-
-        # TODO: HACK: move writer selection up to a dedicated system
-        # listen to model synthesis callbacks
-        # callbacks.add_callback(self)
-        self.glyph_synth = glyph_synth
-    
-    # TODO: HACK
-    @property
-    def current_writer(self) -> int:
-        return self.glyph_synth.current_writer
+        self.mpp_style_domain = mpp_style_domain
+        "Dictates which MUSCIMA++ writer to use for synthesis"
+        
+        self.rng = rng
+        "RNG used for randomization"
     
     def pick(
         self,
@@ -66,7 +52,7 @@ class MuscimaPPLineSynthesizer(NaiveLineSynthesizer):
 
         # select the proper glyph list
         glyphs = self.symbol_repository.glyphs_by_class_and_writer.get(
-            (mpp_glyph_class, self.current_writer)
+            (mpp_glyph_class, self.mpp_style_domain.current_writer)
         ) or self.symbol_repository.glyphs_by_class.get(mpp_glyph_class)
         assert isinstance(glyphs, LineList), \
             f"Got line glyphs without index for {mpp_glyph_class}"

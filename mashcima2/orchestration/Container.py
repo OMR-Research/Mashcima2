@@ -8,8 +8,12 @@ U = TypeVar("U", bound=T)
 
 class Container:
     """Service container used for Model services"""
-    def __init__(self):
+    def __init__(self, register_itself=True):
         self._container = punq.Container()
+
+        # register the container itself into the container
+        if register_itself:
+            self.instance(Container, self)
     
     def instance(self, instance_type: Type[T], instance: T):
         self._container.register(instance_type, instance=instance)
