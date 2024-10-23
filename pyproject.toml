@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mashcima2"
+name = "smashcima"
 authors = [
   { name="Jiří Mayer", email="mayer@ufal.mff.cuni.cz" },
 ]
@@ -29,9 +29,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OMR-Research/Mashcima2"
-Source = "https://github.com/OMR-Research/Mashcima2"
-Issues = "https://github.com/OMR-Research/Mashcima2/issues"
+Homepage = "https://github.com/OMR-Research/Smashcima"
+Source = "https://github.com/OMR-Research/Smashcima"
+Issues = "https://github.com/OMR-Research/Smashcima/issues"
 
 [project.optional-dependencies]
 jupyter = [
@@ -42,7 +42,7 @@ jupyter = [
 ]
 
 [tool.hatch.version]
-path = "mashcima2/__init__.py"
+path = "smashcima/__init__.py"
 
 [tool.hatch.build]
-include = ["/mashcima2"]
+include = ["/smashcima"]

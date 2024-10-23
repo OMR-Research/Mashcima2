@@ -1,6 +1,6 @@
 # Scene
 
-The scene is the data model for the Mashcima synthesizer. It describes the music page constructed during synthesis.
+The scene is the data model for the Smashcima synthesizer. It describes the music page constructed during synthesis.
 
 The designing principles are:
 
@@ -33,7 +33,7 @@ The data model should contain enough information to extract all of this data out
 
 Also note that there is a lot of information in the semantic domain. For this reason the data-model is not primarily visual. It is primarily a python class instance graph, where the visual domain has a well defined place, but so does the musical one. You should consider the data model to be a graph (and a highly connected and redundant one).
 
-Music is inherently 2D, which means that trying to impose a tree-like hierarchy onto it necessarily results in awkward edge cases. It is not obvious whether a note belongs to a voice, a chord, a beamed group, a measure, or a staff. It sort of belongs all of them or only some of them in some cases. And all of these frameworks of looking at music are valid and should be supported. That's why Mashcima data model is a graph, not a tree.
+Music is inherently 2D, which means that trying to impose a tree-like hierarchy onto it necessarily results in awkward edge cases. It is not obvious whether a note belongs to a voice, a chord, a beamed group, a measure, or a staff. It sort of belongs all of them or only some of them in some cases. And all of these frameworks of looking at music are valid and should be supported. That's why Smashcima data model is a graph, not a tree.
 
 This line of thinking has already been employed by [MuNG - Music Notation Graph](https://github.com/OMR-Research/mung). It also makes no assumptions about how the graphical glyphs are grouped together - there are only the atomic glyphs and their relation graph. This is because an eighth note can be a notehead+stem+flag, but it can also be a notehead+stem+beam, where the beam is shared among many notes. Sometimes even the notehead may be shared between two voices. This format, however, only focuses on the visual domain, leaving out the semantics to the user. This means that extracting semantics is difficult and sometimes ambiguous (a voice is something that is not explicitly written in the notation, yet widely used and also built into many high-level formats, such as MusicXML - we need it to be present in the data model).
 

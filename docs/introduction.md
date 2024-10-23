@@ -9,7 +9,7 @@ Deep learning methods currently yield the best results for tackling OMR and thes
 
 The training data for supervised methods (which are among the most prominent) comes in pairs of input images and corresponding output annotations. These input images are usually scans or photos of physical music documents, so are available in bitmap formats (JPG, PNG). These images can be individual musical symbols, staves, or whole pages. The annotations are, however, much more diverse and often task-specific. They could be image-classification classes, image-detection bounding boxes, image-segmentation masks, music notation graphs, sequential textual representations (aligned with the image or not), or complex notation formats, such as MusicXML, MEI, Humdrum \*\*kern, and others.
 
-The purpose of Mashcima is to synthesize these image-annotation aggregates.
+The purpose of Smashcima is to synthesize these image-annotation aggregates.
 
 
 ## Data model (the Scene)
@@ -30,12 +30,12 @@ Similarly, if we want to extract the annotation (say the MusicXML of the page), 
 
 The core of the actual synthesis lies in the process of constructing the scene. If the scene is the data structure, a synthesizer is the algorithm. A synthesizer is some python code, that receives a scene (empty or not) and populates it with more content.
 
-Synthesizers should come in lots of sizes, from small ones synthesizing individual symbols, to large ones putting together the whole page. Mashcima should act as a collection of synthesizers for you to choose and match, given the OMR task you want to solve.
+Synthesizers should come in lots of sizes, from small ones synthesizing individual symbols, to large ones putting together the whole page. Smashcima should act as a collection of synthesizers for you to choose and match, given the OMR task you want to solve.
 
 
 ## Assets
 
-The best synthetic data is partially-real data. Therefore almost all synthesizers need some dataset, some trained generative model, or some set of tuned parameters to work. These real-world input resources are called *assets*. The Mashcima system has an assets layer responsible for their definition, download, preparation and usage.
+The best synthetic data is partially-real data. Therefore almost all synthesizers need some dataset, some trained generative model, or some set of tuned parameters to work. These real-world input resources are called *assets*. The Smashcima system has an assets layer responsible for their definition, download, preparation and usage.
 
 
 ## Pipeline synthesis
@@ -51,7 +51,7 @@ In practise, we don't need to synthesize a single image - we want to train a dee
 
 ## Utilities
 
-There is also utility code in the Mashcima system used for:
+There is also utility code in the Smashcima system used for:
 
 - 2D geometry
 - Music representation format conversions
@@ -59,6 +59,6 @@ There is also utility code in the Mashcima system used for:
 
 ## The main contribution
 
-While Mashcima is branded as a synthesizer, really, it's a framework of synthesizers and their supporting code. As such, it more resembles a framework, than a single tool. The inspiration here is the [NLTK Natural Language Toolkit](https://www.nltk.org/).
+While Smashcima is branded as a synthesizer, really, it's a framework of synthesizers and their supporting code. As such, it more resembles a framework, than a single tool. The inspiration here is the [NLTK Natural Language Toolkit](https://www.nltk.org/).
 
-Because of this, the primary contribution of Mashcima is designing a modular structure and good interfaces between these modules. Mashcima will never support all use cases out of the box, but the goal is to make it easily extensible while reusing as much of its existing code as possible. What a game engine is for making games, Mashcima should be for making image synthesizers.
+Because of this, the primary contribution of Smashcima is designing a modular structure and good interfaces between these modules. Smashcima will never support all use cases out of the box, but the goal is to make it easily extensible while reusing as much of its existing code as possible. What a game engine is for making games, Smashcima should be for making image synthesizers.

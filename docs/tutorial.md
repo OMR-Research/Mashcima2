@@ -1,5 +1,5 @@
 # Tutorial
 
-This file shows you by-example how you can use Mashcima to generate synthetic data.
+This file shows you by-example how you can use Smashcima to generate synthetic data.
 
 TODO
