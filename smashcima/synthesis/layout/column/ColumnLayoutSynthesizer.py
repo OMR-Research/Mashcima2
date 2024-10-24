@@ -4,11 +4,12 @@ from smashcima.scene.visual.System import System
 from smashcima.scene.visual.Page import Page
 from smashcima.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from ..BeamStemSynthesizer import BeamStemSynthesizer
+from ...glyph.LineSynthesizer import LineSynthesizer
 from .Column import Column
 from .ColumnBase import ColumnBase
 from .BarlinesColumn import synthesize_barlines_column
 from .ClefsColumn import synthesize_header_clefs
-from .EventColumn import EventColumn, synthesize_event_column
+from .EventColumn import synthesize_event_column
 from typing import List, Optional, Dict
 import random
 
@@ -118,10 +119,12 @@ class ColumnLayoutSynthesizer:
     def __init__(
         self,
         glyph_synthesizer: GlyphSynthesizer,
+        line_synthesizer: LineSynthesizer,
         beam_stem_synthesizer: BeamStemSynthesizer,
         rng: random.Random
     ):
         self.glyph_synthesizer = glyph_synthesizer
+        self.line_synthesizer = line_synthesizer
         self.beam_stem_synthesizer = beam_stem_synthesizer
         self.rng = rng
 
@@ -251,7 +254,7 @@ class ColumnLayoutSynthesizer:
                 state.append_column(
                     synthesize_event_column(
                         staves, self.rng, self.glyph_synthesizer,
-                        score, score_event
+                        self.line_synthesizer, score, score_event
                     )
                 )
             

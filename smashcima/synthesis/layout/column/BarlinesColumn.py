@@ -10,6 +10,10 @@ import random
 class BarlinesColumn(ColumnBase):
     # TODO: synthesize tall barlines for piano (multi-staff parts)
 
+    def __post_init__(self):
+        # this column should not be grown much, really
+        self.flex_grow = 0.1
+
     def add_barline(self, barline: Glyph):
         self.add_glyph(barline)
 

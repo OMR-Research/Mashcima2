@@ -111,7 +111,7 @@ class ColumnBase(Column, metaclass=abc.ABCMeta):
     
     def detach(self):
         for glyph in self.glyphs:
-            glyph.space.parent_space = None
+            glyph.detach()
 
     def place_debug_boxes(self):
         """For debugging purposes - places sprites that visualize the column"""

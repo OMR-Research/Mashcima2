@@ -2,6 +2,7 @@ from smashcima.scene.semantic.Score import Score
 from smashcima.scene.semantic.ScoreEvent import ScoreEvent
 from smashcima.scene.visual.Stafflines import Stafflines
 from smashcima.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
+from smashcima.synthesis.glyph.LineSynthesizer import LineSynthesizer
 from .NoteheadsColumn import NoteheadsColumn, synthesize_noteheads_column
 from .RestsColumn import RestsColumn, synthesize_rests_column
 from .ColumnBase import ColumnBase
@@ -27,6 +28,7 @@ def synthesize_event_column(
     staves: List[Stafflines],
     rng: random.Random,
     glyph_synthesizer: GlyphSynthesizer,
+    line_synthesizer: LineSynthesizer,
     score: Score,
     score_event: ScoreEvent
 ) -> EventColumn:
@@ -36,6 +38,7 @@ def synthesize_event_column(
         column=column,
         staves=staves,
         glyph_synthesizer=glyph_synthesizer,
+        line_synthesizer=line_synthesizer,
         score=score,
         score_event=score_event
     )
@@ -44,8 +47,10 @@ def synthesize_event_column(
         column=column,
         staves=staves,
         glyph_synthesizer=glyph_synthesizer,
+        line_synthesizer=line_synthesizer,
         score=score,
-        score_event=score_event
+        score_event=score_event,
+        rng=rng
     )
     
     return column

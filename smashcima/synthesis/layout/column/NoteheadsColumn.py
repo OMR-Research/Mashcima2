@@ -9,8 +9,13 @@ from smashcima.scene.semantic.Note import Note
 from smashcima.scene.visual.Stafflines import Stafflines
 from smashcima.scene.visual.Notehead import Notehead
 from smashcima.scene.visual.NoteheadSide import NoteheadSide
+from smashcima.scene.visual.LedgerLine import LedgerLine
 from smashcima.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from smashcima.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
+from smashcima.synthesis.glyph.LineSynthesizer import LineSynthesizer
+from smashcima.synthesis.glyph.SmashcimaGlyphClass import SmashcimaGlyphClass
+from smashcima.geometry.Point import Point
+from smashcima.random_between import random_between
 from .ColumnBase import ColumnBase
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
@@ -40,6 +45,9 @@ class _NoteheadContext:
     stafflines: Stafflines
     "What stafflines is the note placed onto"
 
+    pitch_position: int
+    "Pitch position of the notehead on the stafflines"
+
     kick_asif_stem_up: bool
     "Perform kick off to the right, else to the left"
 
@@ -50,6 +58,10 @@ class _NoteheadContext:
 class NoteheadsColumn(ColumnBase):
     def __post_init__(self):
         self.notehead_contexts: List[_NoteheadContext] = []
+        self.ledger_lines: List[LedgerLine] = []
+    
+    def set_line_synthesizer(self, line_synthesizer: LineSynthesizer):
+        self.line_synthesizer = line_synthesizer
 
     def add_notehead(self, notehead: Notehead):
         assert len(notehead.notes) > 0
@@ -77,13 +89,20 @@ class NoteheadsColumn(ColumnBase):
             note=note,
             clef=clef,
             stafflines=stafflines,
+            pitch_position=clef.pitch_to_pitch_position(note.pitch),
             kick_asif_stem_up=kick_asif_stem_up
         ))
     
     def _position_glyphs(self):
+        # noteheads
         for stafflines in self.staves:
             self.kick_off_noteheads_on_stafflines(stafflines)
         self.position_noteheads()
+        
+        # ledger lines
+        self.delete_current_ledger_lines()
+        for stafflines in self.staves:
+            self.place_ledger_lines(stafflines)
 
     def kick_off_noteheads_on_stafflines(self, stafflines: Stafflines):
         contexts = [
@@ -147,21 +166,122 @@ class NoteheadsColumn(ColumnBase):
             notehead = ctx.notehead
             sl = ctx.stafflines
 
-            pitch_position = ctx.clef.pitch_to_pitch_position(ctx.note.pitch)
             notehead.space.transform = sl.staff_coordinate_system.get_transform(
-                pitch_position=pitch_position,
+                pitch_position=ctx.pitch_position,
                 time_position=self.time_position \
                     + (ctx.kick_off * kick_off_distance)
             )
+    
+    def place_ledger_lines(self, stafflines: Stafflines):
+        contexts = [
+            c for c in self.notehead_contexts
+            if c.stafflines is stafflines
+        ]
+
+        if len(contexts) == 0:
+            return
+        
+        def _ledger_line_temporal_bounds(ctx: _NoteheadContext) -> float:
+            """Gets the time position of the two start and end of a basic
+            ledger line for a given (already placed) notehead"""
+            bbox = ctx.notehead.get_bbox_in_space(ctx.stafflines.space)
+            pos_x = ctx.stafflines.staff_coordinate_system.get_transform(
+                pitch_position=0, time_position=self.time_position
+            ).apply_to(Point(0, 0)).x
+            center = self.time_position + (bbox.center.x - pos_x)
+            
+            # determine the ledger line width
+            # TODO: get from some distribution
+            width = bbox.width * random_between(1.2, 2.5, self.rng)
+            
+            start = center - width / 2
+            end = center + width / 2
+            return start, end
+        
+        max_abs_pitch_position = max(
+            abs(ctx.pitch_position) for ctx in contexts
+        )
+
+        # top-down, then bottom-up
+        for sign in [1, -1]:
+            affected_noteheads: List[Notehead] = []
+            time_position_start = float("inf")
+            time_position_end = float("-inf")
+
+            # walk pitches towards staff center
+            # (code is written for going top-down, then inverted by the sign)
+            STAFF_EDGE_PP = 4
+            for pitch_position in range(
+                max_abs_pitch_position * sign, # start
+                STAFF_EDGE_PP * sign, # stop (exclusive)
+                -1 * sign # step
+            ):
+                # expand affected noteheads by the current noteheads
+                for ctx in contexts:
+                    if ctx.pitch_position == pitch_position:
+                        affected_noteheads.append(ctx.notehead)
+                        start, end = _ledger_line_temporal_bounds(ctx)
+                        time_position_start = min(time_position_start, start)
+                        time_position_end = max(time_position_end, end)
+                
+                # create ledger line
+                # (if on even position and if we have some affected noteheads)
+                if pitch_position % 2 == 0 and len(affected_noteheads) > 0:
+                    line = self.synthesize_ledger_line(
+                        stafflines,
+                        pitch_position=pitch_position,
+                        time_position_start=time_position_start,
+                        time_position_end=time_position_end
+                    )
+                    line.affected_noteheads = [*affected_noteheads] # copy
+    
+    def delete_current_ledger_lines(self):
+        for line in self.ledger_lines:
+            self.glyphs.remove(line)
+            line.detach()
+        self.ledger_lines = []
+    
+    def synthesize_ledger_line(
+        self,
+        stafflines: Stafflines,
+        pitch_position: int,
+        time_position_start: float,
+        time_position_end: float
+    ) -> LedgerLine:
+        start_point = stafflines.staff_coordinate_system.get_transform(
+            pitch_position=pitch_position,
+            time_position=time_position_start
+        ).apply_to(Point(0, 0))
+
+        end_point = stafflines.staff_coordinate_system.get_transform(
+            pitch_position=pitch_position,
+            time_position=time_position_end
+        ).apply_to(Point(0, 0))
+
+        line = self.line_synthesizer.synthesize_line(
+            glyph_type=LedgerLine,
+            glyph_class=SmashcimaGlyphClass.ledgerLine.value,
+            start_point=start_point,
+            end_point=end_point
+        )
+        line.space.parent_space = stafflines.space
+
+        self.glyphs.append(line)
+        self.ledger_lines.append(line)
+
+        return line
 
 
 def synthesize_noteheads_column(
     column: NoteheadsColumn,
     staves: List[Stafflines],
     glyph_synthesizer: GlyphSynthesizer,
+    line_synthesizer: LineSynthesizer,
     score: Score,
     score_event: ScoreEvent
 ):
+    column.set_line_synthesizer(line_synthesizer)
+    
     # notehead merging logic
     # (when two voices share a notehead)
     _all_noteheads: Dict[Tuple[int, int], Notehead] = dict()

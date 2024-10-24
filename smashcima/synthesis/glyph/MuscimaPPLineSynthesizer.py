@@ -13,9 +13,21 @@ import copy
 
 
 _QUERY_TO_MPP_LOOKUP: Dict[str, str] = {
+    # ledger line
+    SmashcimaGlyphClass.ledgerLine.value: MppGlyphClass.ledgerLine.value,
+    MppGlyphClass.ledgerLine.value: MppGlyphClass.ledgerLine.value,
+
+    # stem
     SmuflGlyphClass.stem.value: MppGlyphClass.stem.value,
+    MppGlyphClass.stem.value: MppGlyphClass.stem.value,
+
+    # beam
     SmashcimaGlyphClass.beam.value: MppGlyphClass.beam.value,
+    MppGlyphClass.beam.value: MppGlyphClass.beam.value,
+
+    # beam hook
     SmashcimaGlyphClass.beamHook.value: MppGlyphClass.beamHook.value,
+    MppGlyphClass.beamHook.value: MppGlyphClass.beamHook.value,
 }
 
 

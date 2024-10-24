@@ -43,6 +43,10 @@ class Glyph(SceneObject):
     def __post_init__(self):
         assert type(self.glyph_class) is str, "Glyph class must be string"
     
+    def detach(self):
+        """Unlink the glyph from the scene"""
+        self.space.parent_space = None
+    
     def get_segmentation_mask_of_sprite(self, sprite: Sprite) -> np.ndarray:
         """Given a sprite in this glyph, returns its segmentation mask
         (a 2D array of booleans for the sprite bitmap). Override this

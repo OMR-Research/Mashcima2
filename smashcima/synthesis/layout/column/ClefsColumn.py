@@ -13,6 +13,9 @@ class ClefsColumn(ColumnBase):
     def __post_init__(self):
         self.clefs: List[Clef] = []
 
+        # this column should not be grown much, really
+        self.flex_grow = 0.1
+
     def add_clef(self, clef: Clef, clef_glyph: Glyph):
         self.clefs.append(clef)
         self.add_glyph(clef_glyph)
