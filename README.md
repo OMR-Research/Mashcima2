@@ -2,6 +2,12 @@
 
 A library and a framework for synthesizing images containing music, intended for use as training data for OMR models.
 
+Install with:
+
+```bash
+pip3 install smashcima
+```
+
 
 ## A tutorial
 
