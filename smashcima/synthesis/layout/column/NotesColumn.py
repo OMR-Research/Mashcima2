@@ -2,12 +2,15 @@ from smashcima.scene.semantic.Clef import Clef
 from smashcima.scene.semantic.Score import Score
 from smashcima.scene.semantic.Event import Event
 from smashcima.scene.semantic.Staff import Staff
+from smashcima.scene.semantic.Chord import Chord
+from smashcima.scene.semantic.StemValue import StemValue
 from smashcima.scene.semantic.ScoreEvent import ScoreEvent
 from smashcima.scene.semantic.Note import Note
 from smashcima.scene.semantic.Rest import Rest
 from smashcima.scene.semantic.MeasureRest import MeasureRest
 from smashcima.scene.visual.Stafflines import Stafflines
 from smashcima.scene.visual.Notehead import Notehead
+from smashcima.scene.visual.NoteheadSide import NoteheadSide
 from smashcima.scene.visual.RestGlyph import RestGlyph
 from smashcima.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from smashcima.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
@@ -89,13 +92,19 @@ class NotesColumn(ColumnBase):
         
         note = notehead.notes[0]
         event = Event.of_durable(note, fail_if_none=True)
+        chord = Chord.of_note(note, fail_if_none=True)
         staff = Staff.of_durable(note, fail_if_none=True)
         clef = event.attributes.clefs[staff.staff_number]
         stafflines = self.get_stafflines_of_glyph(notehead)
 
-        # TODO: get from stem orientation
-        # for whole notes assume true
-        kick_asif_stem_up=True
+        if chord.stem_value == StemValue.up:
+            kick_asif_stem_up = True
+        elif chord.stem_value == StemValue.down:
+            kick_asif_stem_up = False
+        elif chord.stem_value == StemValue.none: # whole notes
+            kick_asif_stem_up = True # assume invisible up-stem
+        else:
+            raise Exception(f"Unexpected stem value: {chord.stem_value}")
 
         self.notehead_contexts.append(_NoteheadContext(
             notehead=notehead,
@@ -126,6 +135,8 @@ class NotesColumn(ColumnBase):
 
             # reset kick off
             ctx.kick_off = 0
+            ctx.notehead.up_stem_attachment_side = NoteheadSide.right
+            ctx.notehead.down_stem_attachment_side = NoteheadSide.left
 
             # if the previous pitch was kicked off,
             # then the current does not need to be
@@ -145,18 +156,37 @@ class NotesColumn(ColumnBase):
             last_was_kicked_off = True
             last_linear_pitch = linear_pitch
 
+            if ctx.kick_asif_stem_up:
+                ctx.kick_off = 1
+                ctx.notehead.up_stem_attachment_side = NoteheadSide.left
+                ctx.notehead.down_stem_attachment_side = None
+            else:
+                ctx.kick_off = -1
+                ctx.notehead.up_stem_attachment_side = None
+                ctx.notehead.down_stem_attachment_side = NoteheadSide.right
+
             ctx.kick_off = 1 if ctx.kick_asif_stem_up else -1
         
     def position_noteheads(self):
+        if len(self.notehead_contexts) == 0:
+            return
+        
+        center_notehead_stack_width = sum(
+            ctx.notehead.get_bbox_in_space(ctx.stafflines.space).width
+            for ctx in self.notehead_contexts
+        ) / len(self.notehead_contexts) # average
+        kick_off_distance = center_notehead_stack_width \
+            * 1.2 # scale up a little to accomodate the stem
+
         for ctx in self.notehead_contexts:
             notehead = ctx.notehead
             sl = ctx.stafflines
 
-            # TODO: take kick-off into account
             pitch_position = ctx.clef.pitch_to_pitch_position(ctx.note.pitch)
             notehead.space.transform = sl.staff_coordinate_system.get_transform(
                 pitch_position=pitch_position,
-                time_position=self.time_position # + self.rng.random() * 2 - 1
+                time_position=self.time_position \
+                    + (ctx.kick_off * kick_off_distance)
             )
     
     def position_rests(self):

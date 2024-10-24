@@ -8,6 +8,7 @@ from smashcima.scene.semantic.Measure import Measure
 from smashcima.scene.semantic.StemValue import StemValue
 from smashcima.scene.AffineSpace import AffineSpace
 from smashcima.scene.visual.Notehead import Notehead
+from smashcima.scene.visual.NoteheadSide import NoteheadSide
 from smashcima.scene.visual.Stem import Stem
 from smashcima.scene.visual.Beam import Beam
 from smashcima.scene.visual.BeamHook import BeamHook
@@ -138,13 +139,31 @@ class BeamStemSynthesizer:
         orientation: StemValue
     ) -> Point:
         """Returns the point where the stem begins, in the notehead's space"""
-        # TODO: account for notehead size or learn a distribution or something
-        point = Point(1.0, 0)
+        assert orientation in [StemValue.up, StemValue.down], \
+            "Only up/down stem values are expected when synthesizing stems."
+
+        side = notehead.up_stem_attachment_side \
+            if orientation == StemValue.up \
+            else notehead.down_stem_attachment_side
         
-        if orientation == StemValue.down:
-            point = -point
+        if side is None:
+            raise Exception(
+                f"There should not be a '{orientation}' stem for the notehead"
+            )
+
+        # TODO: pull from some distribution
+        if side == NoteheadSide.left:
+            return Point(
+                x=-notehead.get_bbox_in_space(notehead.space).width / 2,
+                y=0
+            )
+        elif side == NoteheadSide.right:
+            return Point(
+                x=notehead.get_bbox_in_space(notehead.space).width / 2,
+                y=0
+            )
         
-        return point
+        raise Exception(f"Unexpected notehead side value: {side}")
     
     def get_stem_tip_point(
         self,
