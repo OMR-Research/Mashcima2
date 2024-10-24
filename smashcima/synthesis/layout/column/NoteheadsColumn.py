@@ -6,18 +6,14 @@ from smashcima.scene.semantic.Chord import Chord
 from smashcima.scene.semantic.StemValue import StemValue
 from smashcima.scene.semantic.ScoreEvent import ScoreEvent
 from smashcima.scene.semantic.Note import Note
-from smashcima.scene.semantic.Rest import Rest
-from smashcima.scene.semantic.MeasureRest import MeasureRest
 from smashcima.scene.visual.Stafflines import Stafflines
 from smashcima.scene.visual.Notehead import Notehead
 from smashcima.scene.visual.NoteheadSide import NoteheadSide
-from smashcima.scene.visual.RestGlyph import RestGlyph
 from smashcima.synthesis.glyph.SmuflGlyphClass import SmuflGlyphClass
 from smashcima.synthesis.glyph.GlyphSynthesizer import GlyphSynthesizer
 from .ColumnBase import ColumnBase
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
-import random
 
 
 # Notehead alignment
@@ -51,39 +47,9 @@ class _NoteheadContext:
     "Horizontal notehead column position: -1, 0, +1 for the three columns"
 
 
-@dataclass
-class _RestContext:
-    glyph: RestGlyph
-    "The rest glyph"
-
-    clef: Clef
-    "What clef applies to the rest"
-
-    stafflines: Stafflines
-    "What stafflines is the rest placed onto"
-
-
-class NotesColumn(ColumnBase):
+class NoteheadsColumn(ColumnBase):
     def __post_init__(self):
         self.notehead_contexts: List[_NoteheadContext] = []
-        self.rest_contexts: List[_RestContext] = []
-    
-    def add_rest(self, glyph: RestGlyph):
-        assert glyph.rest is not None
-        
-        self.glyphs.append(glyph)
-
-        rest = glyph.rest
-        event = Event.of_durable(rest, fail_if_none=True)
-        staff = Staff.of_durable(rest, fail_if_none=True)
-        clef = event.attributes.clefs[staff.staff_number]
-        stafflines = self.get_stafflines_of_glyph(glyph)
-
-        self.rest_contexts.append(_RestContext(
-            glyph=glyph,
-            clef=clef,
-            stafflines=stafflines
-        ))
 
     def add_notehead(self, notehead: Notehead):
         assert len(notehead.notes) > 0
@@ -113,13 +79,12 @@ class NotesColumn(ColumnBase):
             stafflines=stafflines,
             kick_asif_stem_up=kick_asif_stem_up
         ))
-
+    
     def _position_glyphs(self):
         for stafflines in self.staves:
             self.kick_off_noteheads_on_stafflines(stafflines)
         self.position_noteheads()
-        self.position_rests()
-    
+
     def kick_off_noteheads_on_stafflines(self, stafflines: Stafflines):
         contexts = [
             c for c in self.notehead_contexts
@@ -188,39 +153,15 @@ class NotesColumn(ColumnBase):
                 time_position=self.time_position \
                     + (ctx.kick_off * kick_off_distance)
             )
-    
-    def position_rests(self):
-        for ctx in self.rest_contexts:
-            rest = ctx.glyph.rest
-            glyph = ctx.glyph
-            clef = ctx.clef
-            sl = ctx.stafflines
-
-            display_pitch = rest.display_pitch \
-                or RestGlyph.default_display_pitch(
-                    clef, rest.type_duration
-                )
-            pitch_position = RestGlyph.display_pitch_to_glyph_pitch_position(
-                clef, display_pitch, rest.type_duration
-            )
-
-            glyph.space.transform = sl.staff_coordinate_system.get_transform(
-                pitch_position=pitch_position,
-                time_position=self.time_position
-            )
 
 
-def synthesize_notes_column(
+def synthesize_noteheads_column(
+    column: NoteheadsColumn,
     staves: List[Stafflines],
-    rng: random.Random,
     glyph_synthesizer: GlyphSynthesizer,
     score: Score,
     score_event: ScoreEvent
-) -> NotesColumn:
-    column = NotesColumn(staves, rng.random())
-
-    # === noteheads ===
-
+):
     # notehead merging logic
     # (when two voices share a notehead)
     _all_noteheads: Dict[Tuple[int, int], Notehead] = dict()
@@ -262,28 +203,3 @@ def synthesize_notes_column(
     # add noteheads to the column
     for notehead in _all_noteheads.values():
         column.add_notehead(notehead)
-
-    # === rests ===
-
-    # for all the rests (including measure rests)
-    for event in score_event.events:
-        for durable in event.durables:
-            if not isinstance(durable, Rest): # inlcudes MeasureRest
-                continue
-            
-            stafflines_index = score.staff_index_of_durable(durable)
-            stafflines = staves[stafflines_index]
-
-            # create the rest
-            glyph_class = SmuflGlyphClass.rest_from_type_duration(
-                durable.type_duration
-            )
-            rest = glyph_synthesizer.synthesize_glyph(
-                glyph_class.value,
-                expected_glyph_type=RestGlyph
-            )
-            rest.space.parent_space = stafflines.space
-            rest.rest = durable
-            column.add_rest(rest)
-    
-    return column

@@ -8,7 +8,7 @@ from .Column import Column
 from .ColumnBase import ColumnBase
 from .BarlinesColumn import synthesize_barlines_column
 from .ClefsColumn import synthesize_header_clefs
-from .NotesColumn import NotesColumn, synthesize_notes_column
+from .EventColumn import EventColumn, synthesize_event_column
 from typing import List, Optional, Dict
 import random
 
@@ -249,7 +249,7 @@ class ColumnLayoutSynthesizer:
             # construct a column for each event
             for score_event in score_measure.events:
                 state.append_column(
-                    synthesize_notes_column(
+                    synthesize_event_column(
                         staves, self.rng, self.glyph_synthesizer,
                         score, score_event
                     )
